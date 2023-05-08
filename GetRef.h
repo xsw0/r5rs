@@ -1,5 +1,5 @@
-#ifndef _R5RS_GETREF_H_
-#define _R5RS_GETREF_H_
+#ifndef _R5RS_GET_REF_H_
+#define _R5RS_GET_REF_H_
 
 #include <vector>
 
@@ -21,6 +21,6 @@ namespace r5rs
     std::vector<Reference *> operator()(Pair & value);
     std::vector<Reference *> operator()(std::vector<Reference> & value);
   };
-}
+} // namespace r5rs
 
 #endif

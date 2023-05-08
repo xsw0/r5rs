@@ -39,7 +39,7 @@ std::vector<Reference *> r5rs::GetRef::operator()(const std::string & value)
 
 std::vector<Reference *> r5rs::GetRef::operator()(std::pair<Reference, Reference> & value)
 {
-  return std::vector<Reference *>{&value.first, & value.second};
+  return std::vector<Reference *>{ &value.first, & value.second };
 }
 
 std::vector<Reference *> r5rs::GetRef::operator()(std::vector<Reference> & value)

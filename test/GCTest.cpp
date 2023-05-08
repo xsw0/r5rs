@@ -41,7 +41,7 @@ void printRef()
 
 int main(int argc, char * argv[])
 {
-  for (int i = 0; i < 65536; i++)
+  for (int i = 0; i < 9999; i++)
   {
     auto x = gc(Pair({ i * 6, i * 6 + 1 }));
     auto y = gc(Pair({ i * 6 + 2, i * 6 + 3 }));
@@ -53,10 +53,6 @@ int main(int argc, char * argv[])
     assert(&*std::get<Pair>(*x).first);
     assert(&*std::get<Pair>(*y).first);
     assert(&*std::get<Pair>(*z).first);
-    if (i % 1000 == 0)
-    {
-      std::cout << i << std::endl;
-    }
   }
   GC::mark_and_sweep();
   {

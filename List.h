@@ -74,6 +74,6 @@ namespace r5rs
     std::lock_guard<std::mutex> lock(mutex);
     return exist(element);
   }
-}
+} // namespace r5rs
 
 #endif

@@ -23,6 +23,6 @@ namespace r5rs
     std::string operator()(const Pair & value);
     std::string operator()(const std::vector<Reference> & value);
   };
-}
+} // namespace r5rs
 
 #endif

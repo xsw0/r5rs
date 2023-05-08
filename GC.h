@@ -1,11 +1,6 @@
 #ifndef _R5RS_GC_H_
 #define _R5RS_GC_H_
 
-// #include <cstddef>
-// #include <cstdlib>
-// #include <functional>
-// #include <vector>
-// #include <list>
 #include <mutex>
 #include <atomic>
 
@@ -34,7 +29,7 @@ namespace r5rs
 
   class Object;
 
-  class Reference final : public List<Reference>
+  class Reference final: public List<Reference>
   {
     friend class Object;
     friend class GC;
@@ -42,17 +37,22 @@ namespace r5rs
     inline thread_local static bool external = true;
 
   public:
-    static Reference gc(auto && value);
+    static Reference gc(auto && value)
+      requires std::is_nothrow_constructible_v<Value, decltype(value)>
+    ;
 
     ~Reference();
-    Reference(auto && value);
+    Reference();
+    Reference(auto && value)
+      requires (!std::is_same_v<Reference, std::remove_cvref_t<decltype(value)>>)
+    ;
 
     Reference(const Reference & other);
-    Reference(Reference && other);
+    Reference(Reference && other) noexcept;
 
     Reference & operator=(nullptr_t);
     Reference & operator=(const Reference & other);
-    Reference & operator=(Reference && other);
+    Reference & operator=(Reference && other) noexcept;
 
     Value & operator*();
     const Value & operator*() const;
@@ -62,12 +62,22 @@ namespace r5rs
 
     Reference(Object * obj);
 
-    void mark_recv();
+    void mark_rec();
   private:
     Object * obj;
   };
 
-  class Object final : public List<Object>
+  static_assert(std::is_copy_constructible_v<Reference>);
+  static_assert(std::is_nothrow_move_constructible_v<Reference>);
+  static_assert(std::is_copy_assignable_v<Reference>);
+  static_assert(std::is_nothrow_move_assignable_v<Reference>);
+
+  static_assert(std::is_copy_constructible_v<Value>);
+  static_assert(std::is_nothrow_move_constructible_v<Value>);
+  static_assert(std::is_copy_assignable_v<Value>);
+  static_assert(std::is_nothrow_move_assignable_v<Value>);
+
+  class Object final: public List<Object>
   {
     friend class Reference;
     friend class GC;
@@ -78,39 +88,51 @@ namespace r5rs
     static void ref(Object * obj);
     static void unref(Object * obj);
 
-    static Object * create_object(auto && value);
+    static Object * create_object(auto && value)
+      requires std::is_nothrow_constructible_v<Value, decltype(value)>;
   public:
     bool is_marked() const { return mask & MARK; }
     void mark() { mask |= MARK; }
     void unmark() { mask &= ~MARK; }
     unsigned count() const { return mask & ~MARK; }
-    void inc() { assert(count() + 1 < MARK); ++mask; }
-    void dec() { assert(count() > 0); --mask; }
+    void inc()
+    {
+      assert(count() + 1 < MARK);
+      ++mask;
+    }
+    void dec()
+    {
+      assert(count() > 0);
+      --mask;
+    }
     Value value;
     std::atomic_uint32_t mask;
   };
 
   Object * Object::create_object(auto && value)
+    requires std::is_nothrow_constructible_v<Value, decltype(value)>
   {
     auto obj = static_cast<Object *>(std::malloc(sizeof(Object)));
-    new (static_cast<List<Object>*>(obj)) List<Object>();
-    new (&obj->value) Value(std::forward<decltype(value)>(value));
-    new (&obj->mask) decltype(obj->mask)();
+    new(static_cast<List<Object> *>(obj)) List<Object>();
+    new(&obj->value) Value(std::forward<decltype(value)>(value));
+    new(&obj->mask) decltype(obj->mask)();
 
     add(obj, GC::mutex);
 
     return obj;
   }
 
+  inline r5rs::Reference::Reference(): Reference(Value{}) {}
+
   Reference::Reference(auto && value)
-    : Reference(
-      Object::create_object(
-        std::forward<decltype(value)>(value)))
+    requires (!std::is_same_v<Reference, std::remove_cvref_t<decltype(value)>>)
+  : Reference(Object::create_object(std::forward<decltype(value)>(value)))
   {
     if (Object::size > Object::capacity) { GC::mark_and_sweep(); }
   }
 
   Reference Reference::gc(auto && value)
+    requires std::is_nothrow_constructible_v<Value, decltype(value)>
   {
     assert(external);
     external = false;
@@ -121,12 +143,12 @@ namespace r5rs
     return ref;
   }
 
-  template<typename T = nullptr_t>
   inline Reference gc(auto && value)
+    requires std::is_nothrow_constructible_v<Value, decltype(value)>
   {
     return Reference::gc(std::forward<decltype(value)>(value));
   }
 
-}
+} // namespace r5rs
 
 #endif

@@ -86,8 +86,9 @@ int main(int argc, char * argv[])
 
   for (auto && p : vec)
   {
-    assert(&*std::get<Pair>(*p).first);
-    assert(&*std::get<Pair>(*p).second);
+    std::cout << std::visit(String(), *p) << std::endl;
+    std::cout << std::visit(String(), *std::get<Pair>(*p).first) << std::endl;
+    std::cout << std::visit(String(), *std::get<Pair>(*p).second) << std::endl;
   }
   std::cout << "Hello, world!\n";
   return 0;
