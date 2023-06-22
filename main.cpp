@@ -14,6 +14,8 @@ int main(int argc, char * argv[])
 {
   if (argc == 1)
   {
+    r5rs::expression::init();
+
     std::cout << "start" << std::endl;
 
     auto toks = tokens(cinIStream());
@@ -28,7 +30,7 @@ int main(int argc, char * argv[])
         << C_BLACK << std::endl;
     }
 
-    auto p = program()(toks);
+    auto p = std::invoke(*program(), toks);
 
     std::cout << "end" << std::endl;
   }

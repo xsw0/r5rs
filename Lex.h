@@ -16,41 +16,41 @@ namespace r5rs
     function_ptr<std::string, IStream<char>> charStream2String();
     function_ptr<std::string, std::list<char>> charList2String();
 
-    Parser<Char, char> any();
+    ParserPtr<Char, char> any();
 
-    Parser<Char, char> match(char c);
-    Parser<Char, char> match(function_ptr<bool, char> pred);
-    Parser<Char, char> match_any_of(std::string set);
+    ParserPtr<Char, char> match(char c);
+    ParserPtr<Char, char> match(function_ptr<bool, char> pred);
+    ParserPtr<Char, char> match_any_of(std::string set);
 
-    Parser<Char, std::string> match(std::string str);
+    ParserPtr<Char, std::string> match(std::string str);
 
-    Parser<Char, nullptr_t> delimiter();
-    Parser<Char, std::string> comment();
-    Parser<Char, nullptr_t> intertoken_space();
+    ParserPtr<Char, nullptr_t> delimiter();
+    ParserPtr<Char, std::string> comment();
+    ParserPtr<Char, nullptr_t> intertoken_space();
 
-    Parser<Char, std::string> identifier();
-    Parser<Char, char> initial();
-    Parser<Char, char> letter();
-    Parser<Char, char> special_initial();
-    Parser<Char, char> subsequent();
-    Parser<Char, char> digit();
-    Parser<Char, char> special_subsequent();
-    Parser<Char, std::string> peculiar_identifier();
+    ParserPtr<Char, std::string> identifier();
+    ParserPtr<Char, char> initial();
+    ParserPtr<Char, char> letter();
+    ParserPtr<Char, char> special_initial();
+    ParserPtr<Char, char> subsequent();
+    ParserPtr<Char, char> digit();
+    ParserPtr<Char, char> special_subsequent();
+    ParserPtr<Char, std::string> peculiar_identifier();
 
-    Parser<Char, bool> boolean();
-    Parser<Char, char> character();
-    Parser<Char, char> character_name();
+    ParserPtr<Char, bool> boolean();
+    ParserPtr<Char, char> character();
+    ParserPtr<Char, char> character_name();
 
-    Parser<Char, std::string> string();
-    Parser<Char, char> string_element();
-    Parser<Char, int64_t> number();
+    ParserPtr<Char, std::string> string();
+    ParserPtr<Char, char> string_element();
+    ParserPtr<Char, int64_t> number();
 
-    Parser<Char, TokenType> single_symbol();
-    Parser<Char, TokenType> two_char_symbol();
-    Parser<Char, TokenType> symbol();
-    Parser<Char, Token> token();
+    ParserPtr<Char, TokenType> single_symbol();
+    ParserPtr<Char, TokenType> two_char_symbol();
+    ParserPtr<Char, TokenType> symbol();
+    ParserPtr<Char, Token> token();
 
-    Parser<Char, Token> eof();
+    ParserPtr<Char, Token> eof();
   } // namespace lex
 } // namespace r5rs
 

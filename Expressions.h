@@ -197,42 +197,46 @@ namespace r5rs
     };
 
     template<typename T = nullptr_t>
-    Parser<Token, T> match(TokenType type)
+    ParserPtr<Token, T> match(TokenType type)
     {
-      return make_function(
-        [=](IStream<Token> input) -> ParserResult<Token, T> {
-          if (input.eof()) { return Error{ "eof", input.current() }; }
-          if (type != input[0]->type) { return Error{ "match fail.", input.current() }; }
-          if (!std::holds_alternative<T>(input[0]->value))
-          {
-            return Error{ "type error.", input.current() };
+      return make_parser(
+        make_function(
+          [=](IStream<Token> input) -> ParserResult<Token, T> {
+            if (input.eof()) { return Error{ "eof", input.current() }; }
+            if (type != input[0]->type) { return Error{ "match fail.", input.current() }; }
+            if (!std::holds_alternative<T>(input[0]->value))
+            {
+              return Error{ "type error.", input.current() };
+            }
+            return std::make_pair(std::get<T>(input[0]->value), input + 1);
           }
-          return std::make_pair(std::get<T>(input[0]->value), input + 1);
-        }
+        )
       );
     }
 
-    Parser<Token, nullptr_t> match(Keyword keyword);
-    Parser<Token, std::string> variable();
+    ParserPtr<Token, nullptr_t> match(Keyword keyword);
+    ParserPtr<Token, std::string> variable();
 
-    Parser<Token, DatumPtr> simpleDatum();
-    Parser<Token, DatumPtr> listDatum();
-    Parser<Token, DatumPtr> vectorDatum();
-    Parser<Token, DatumPtr> quotation();
+    ParserPtr<Token, DatumPtr> simpleDatum();
+    ParserPtr<Token, DatumPtr> listDatum();
+    ParserPtr<Token, DatumPtr> vectorDatum();
+    ParserPtr<Token, DatumPtr> quotation();
 
-    Parser<Token, Literal> literal();
-    Parser<Token, Call> call();
-    Parser<Token, Lambda> lambda();
-    Parser<Token, Conditional> conditional();
-    Parser<Token, Assignment> assignment();
+    ParserPtr<Token, Literal> literal();
+    ParserPtr<Token, Call> call();
+    ParserPtr<Token, Lambda> lambda();
+    ParserPtr<Token, Conditional> conditional();
+    ParserPtr<Token, Assignment> assignment();
 
-    Parser<Token, Formals> formals();
-    Parser<Token, Formals> defFormals();
-    Parser<Token, Body> body();
+    ParserPtr<Token, Formals> formals();
+    ParserPtr<Token, Formals> defFormals();
+    ParserPtr<Token, Body> body();
 
-    Parser<Token, DefinitionPtr> definitions();
-    Parser<Token, CODPtr> cod();
-    Parser<Token, CODs> cods();
+    ParserPtr<Token, DefinitionPtr> definitions();
+    ParserPtr<Token, CODPtr> cod();
+    ParserPtr<Token, CODs> cods();
+
+    void init();
   } // namespace expression
 
   using Program = expression::CODs;
@@ -240,10 +244,10 @@ namespace r5rs
   using Exp = expression::Exp;
   using Definition = expression::Definition;
 
-  Parser<Token, std::shared_ptr<Datum>> datum();
-  Parser<Token, std::shared_ptr<Exp>> exp();
-  Parser<Token, Program> program();
-  Parser<Token, std::shared_ptr<Definition>> definition();
+  ParserPtr<Token, std::shared_ptr<Datum>> datum();
+  ParserPtr<Token, std::shared_ptr<Exp>> exp();
+  ParserPtr<Token, Program> program();
+  ParserPtr<Token, std::shared_ptr<Definition>> definition();
 } // namespace r5rs
 
 #endif

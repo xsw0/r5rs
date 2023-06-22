@@ -27,32 +27,42 @@ namespace r5rs
   using ParserResult = Try<std::pair<Output, IStream<Input>>>;
 
   template<typename Input, typename Output>
-  class Parser
+  class Parser: public std::enable_shared_from_this<Parser<Input, Output>>
   {
+    template<typename In = Input, typename Out = Output>
+    using ParserPtr = std::shared_ptr<Parser<In, Out>>;
   public:
     using input_t = Input;
     using output_t = Output;
     using result_t = ParserResult<input_t, output_t>;
     using function_t = function_ptr<result_t, IStream<input_t>>;
 
+    Parser() {};
     Parser(function_t func): func(func) { assert(func && *func); };
 
     operator bool() const { return func && *func; }
 
+    Parser & operator=(const Parser & parser)
+    {
+      assert(parser);
+      func = parser.func;
+      return *this;
+    }
+
     ParserResult<Input, Output> operator()(IStream<Input> input) const
     {
-      assert(func && *func);
+      assert(*this);
       return std::invoke(*func, input);
     }
 
     template<typename R>
-    Parser<Input, R> operator>>=(function_ptr<Parser<Input, R>, Output> f);
+    ParserPtr<Input, R> operator>>=(function_ptr<ParserPtr<Input, R>, Output> f);
 
     template<typename R>
-    Parser<Input, R> as(R value);
+    ParserPtr<Input, R> as(R value);
 
     template<typename T>
-    Parser<Input, T> as()
+    ParserPtr<Input, T> as()
     {
       return map<T>(
         make_function(
@@ -63,7 +73,7 @@ namespace r5rs
       );
     }
 
-    Parser<Input, std::shared_ptr<Output>> shared()
+    ParserPtr<Input, std::shared_ptr<Output>> shared()
     {
       return map<std::shared_ptr<Output>>(
         make_function(
@@ -75,18 +85,18 @@ namespace r5rs
     }
 
     template<typename R>
-    Parser<Input, R> map(function_ptr<R, Output> f);
+    ParserPtr<Input, R> map(function_ptr<R, Output> f);
 
-    Parser<Input, Output> filter(function_ptr<bool, Output> f);
+    ParserPtr<Input, Output> filter(function_ptr<bool, Output> f);
 
     template<typename R>
-    Parser<Input, Output> peek(Parser<Input, R> parser);
+    ParserPtr<Input, Output> peek(ParserPtr<Input, R> parser);
 
-    Parser<Input, std::list<Output>> many();
-    Parser<Input, std::list<Output>> some();
-    Parser<Input, std::optional<Output>> maybe();
+    ParserPtr<Input, std::list<Output>> many();
+    ParserPtr<Input, std::list<Output>> some();
+    ParserPtr<Input, std::optional<Output>> maybe();
 
-    Parser<Input, Output> otherwise(Output output);
+    ParserPtr<Input, Output> otherwise(Output output);
 
     function_t func;
   };
@@ -95,66 +105,97 @@ namespace r5rs
   Parser(function_ptr<ParserResult<Input, Output>, IStream<Input>>) -> Parser<Input, Output>;
 
   template<typename Input, typename Output>
-  template<typename R>
-  inline auto Parser<Input, Output>::operator>>=(function_ptr<Parser<Input, R>, Output> f)
-    -> Parser<Input, R>
+  using ParserPtr = std::shared_ptr<Parser<Input, Output>>;
+
+  template<typename Input, typename Output>
+  auto make_parser()
   {
-    assert(*this);
-    assert(f && *f);
-    return make_function(
-      [=, *this](IStream<Input> input) {
-        assert(*this);
-        assert(f && *f);
-        return std::invoke(*func, input)
-          >>= [=, *this](auto && pair) {
-          assert(*this);
-          assert(f && *f);
-          return std::invoke(std::invoke(*f, pair.first), pair.second);
-        };
-      }
+    auto x = std::make_shared<Parser<Input, Output>>();
+    assert(x);
+    return std::make_shared<Parser<Input, Output>>();
+  }
+
+  template<typename Input, typename Output>
+  auto make_parser(Parser<Input, Output> parser)
+  {
+    return std::make_shared<Parser<Input, Output>>(parser);
+  }
+
+  template<typename Input, typename Output>
+  auto make_parser(function_ptr<ParserResult<Input, Output>, IStream<Input>> function)
+  {
+    return std::make_shared<Parser<Input, Output>>(Parser(function));
+  }
+
+  template<typename Input, typename Output>
+  template<typename R>
+  inline auto Parser<Input, Output>::operator>>=(function_ptr<ParserPtr<Input, R>, Output> f)
+    -> ParserPtr<Input, R>
+  {
+    return make_parser(
+      make_function(
+        [f, self = this->shared_from_this()](IStream<Input> input) {
+          return std::invoke(*self->func, input)
+            >>= [f](auto && pair) {
+            return std::invoke(std::invoke(*f, pair.first), pair.second);
+          };
+        }
+      )
     );
   }
 
   template<typename R, typename Input, typename ... Outputs>
-  inline Parser<Input, R> combine(function_ptr<R, Outputs ...> f, Parser<Input, Outputs> ... args)
+  inline ParserPtr<Input, R> combine(function_ptr<R, Outputs ...> f, ParserPtr<Input, Outputs> ... args)
   {
     (..., assert(args));
-    return make_function(
-      [=](IStream<Input> input) {
-        (..., assert(args));
-        return (
-          Try(std::make_pair(std::tuple<>(), input)) >>= ... >>=
-          [=](auto && pair) {
-            (..., assert(args));
-            return std::invoke(args, pair.second) >>= [=](auto && p) {
+    return make_parser(
+      make_function(
+        [=](IStream<Input> input) {
+          (..., assert(args));
+          (..., assert(*args));
+          return (
+            Try(std::make_pair(std::tuple<>(), input)) >>= ... >>=
+            [=](auto && pair) {
+              (..., assert(args));
+              (..., assert(*args));
+
+              return [=]() -> ParserResult<Input, Outputs> {
+                try
+                {
+                  return std::invoke(*args, pair.second);
+                }
+                catch (const std::exception & e)
+                {
+                  return Error{ e.what() };
+                }
+              }() >>= [=](auto && p) {
+                return Try(
+                  std::make_pair(
+                    std::tuple_cat(pair.first, std::tuple(p.first)),
+                    p.second
+                  )
+                );
+              };
+            }
+          ) >>=
+            [=](auto && pair) {
+              (..., assert(args));
               return Try(
-                std::make_pair(
-                  std::tuple_cat(pair.first, std::tuple(p.first)),
-                  p.second
-                )
+                std::make_pair(std::apply(*f, pair.first), pair.second)
               );
             };
-          }
-        ) >>=
-          [=](auto && pair) {
-            (..., assert(args));
-            return Try(
-              std::make_pair(std::apply(*f, pair.first), pair.second)
-            );
-          };
-      }
+        }
+      )
     );
   }
 
   template<size_t index, typename Input, typename ... Args>
-  inline auto select(Parser<Input, Args> ... parser)
-    -> Parser<Input, typename std::tuple_element<index, std::tuple<Args...>>::type>
+  inline auto select(ParserPtr<Input, Args> ... parser)
+    -> ParserPtr<Input, typename std::tuple_element<index, std::tuple<Args...>>::type>
   {
-    (..., assert(parser));
     return combine(
       make_function(
         [=](Args ... args) {
-          (..., assert(parser));
           return pack_get<index>(args...);
         }
       ),
@@ -164,154 +205,156 @@ namespace r5rs
 
   template<typename Input, typename Output>
   template<typename R>
-  inline Parser<Input, R> Parser<Input, Output>::as(R value)
+  inline ParserPtr<Input, R> Parser<Input, Output>::as(R value)
   {
-    assert(*this);
-    return combine(make_function([=, *this](Output) { assert(*this); return value; }), *this);
-  }
-
-  template<typename Input, typename Output>
-  template<typename R>
-  inline Parser<Input, R> Parser<Input, Output>::map(function_ptr<R, Output> f)
-  {
-    assert(*this);
-    assert(f && *f);
-    return combine(f, *this);
-  }
-
-  template<typename Input, typename Output>
-  inline Parser<Input, Output> Parser<Input, Output>::filter(function_ptr<bool, Output> f)
-  {
-    assert(*this);
-    assert(f && *f);
-    return make_function(
-      [=, *this](IStream<Input> input) -> ParserResult<Input, Output> {
-        assert(*this);
-        assert(f && *f);
-        auto res = std::invoke(*func, input);
-        if (!res) { return res; }
-        if (!std::invoke(*f, res->first)) { return Error{ "filter fail." }; }
-        return res;
-      }
+    return combine(
+      make_function(
+        [value](Output) {
+          return value;
+        }
+      ),
+      this->shared_from_this()
     );
   }
 
   template<typename Input, typename Output>
   template<typename R>
-  inline Parser<Input, Output> Parser<Input, Output>::peek(Parser<Input, R> parser)
+  inline ParserPtr<Input, R> Parser<Input, Output>::map(function_ptr<R, Output> f)
   {
-    assert(*this);
-    assert(parser);
-    return make_function(
-      [=, *this](IStream<Input> input) -> ParserResult<Input, Output> {
-        assert(*this);
-        assert(parser);
-        return std::invoke(*func, input) >>=
-          [=, *this](auto && pair) -> ParserResult<Input, Output> {
-          assert(*this);
-          assert(parser);
-          if (parser(pair.second))
+    return combine(f, this->shared_from_this());
+  }
+
+  template<typename Input, typename Output>
+  inline ParserPtr<Input, Output> Parser<Input, Output>::filter(function_ptr<bool, Output> f)
+  {
+    return make_parser(
+      make_function(
+        [f, self = this->shared_from_this()](IStream<Input> input) -> ParserResult<Input, Output> {
+          assert(*self);
+          auto res = std::invoke(*self->func, input);
+          if (!res) { return res; }
+          if (!std::invoke(*f, res->first)) { return Error{ "filter fail." }; }
+          return res;
+        }
+      )
+    );
+  }
+
+  template<typename Input, typename Output>
+  template<typename R>
+  inline ParserPtr<Input, Output> Parser<Input, Output>::peek(ParserPtr<Input, R> parser)
+  {
+    return make_parser(
+      make_function(
+        [parser, self = this->shared_from_this()](IStream<Input> input) -> ParserResult<Input, Output> {
+          assert(*self);
+          return std::invoke(*self->func, input) >>=
+            [=](auto && pair) -> ParserResult<Input, Output> {
+            if (std::invoke(*parser, pair.second))
+            {
+              return pair;
+            }
+            else
+            {
+              return Error{ "peek fail." };
+            }
+          };
+        }
+      )
+    );
+  }
+
+  template<typename Input, typename Output>
+  inline ParserPtr<Input, std::list<Output>> Parser<Input, Output>::many()
+  {
+    return make_parser(
+      make_function(
+        [self = this->shared_from_this()](IStream<Input> input) -> ParserResult<Input, std::list<Output>> {
+          assert(self);
+          std::list<Output> output;
+          result_t pair;
+          while ((pair = std::invoke(*self->func, input)))
           {
-            return pair;
+            input = pair->second;
+            output.push_back(pair->first);
           }
-          else
+          return std::make_pair(output, input);
+        }
+      )
+    );
+  }
+
+  template<typename Input, typename Output>
+  inline ParserPtr<Input, std::list<Output>> Parser<Input, Output>::some()
+  {
+    return make_parser(
+      make_function(
+        [self = this->shared_from_this()](IStream<Input> input) -> ParserResult<Input, std::list<Output>> {
+          assert(*self);
+          std::list<Output> output;
+          result_t pair;
+          while ((pair = std::invoke(*self->func, input)))
           {
-            return Error{ "peek fail." };
+            input = pair->second;
+            output.push_back(pair->first);
           }
-        };
-      }
-    );
-  }
-
-  template<typename Input, typename Output>
-  inline Parser<Input, std::list<Output>> Parser<Input, Output>::many()
-  {
-    assert(*this);
-    return make_function(
-      [=, *this](IStream<Input> input) -> ParserResult<Input, std::list<Output>> {
-        assert(*this);
-        std::list<Output> output;
-        result_t pair;
-        while ((pair = std::invoke(*func, input)))
-        {
-          input = pair->second;
-          output.push_back(pair->first);
+          if (output.empty()) { return Error{ "not find any match." }; }
+          return std::make_pair(output, input);
         }
-        return std::make_pair(output, input);
-      }
+      )
     );
   }
 
   template<typename Input, typename Output>
-  inline Parser<Input, std::list<Output>> Parser<Input, Output>::some()
+  inline ParserPtr<Input, std::optional<Output>> Parser<Input, Output>::maybe()
   {
-    assert(*this);
-    return make_function(
-      [=, *this](IStream<Input> input) -> ParserResult<Input, std::list<Output>> {
-        assert(*this);
-        std::list<Output> output;
-        result_t pair;
-        while ((pair = std::invoke(*func, input)))
-        {
-          input = pair->second;
-          output.push_back(pair->first);
+    return make_parser(
+      make_function(
+        [self = this->shared_from_this()](IStream<Input> input) -> ParserResult<Input, std::optional<Output>> {
+          assert(*self);
+          std::optional<Output> output;
+          result_t pair = std::invoke(*self->func, input);
+          if (pair)
+          {
+            input = pair->second;
+            output = pair->first;
+          }
+          return std::make_pair(output, input);
         }
-        if (output.empty()) { return Error{ "not find any match." }; }
-        return std::make_pair(output, input);
-      }
+      )
     );
   }
 
   template<typename Input, typename Output>
-  inline Parser<Input, std::optional<Output>> Parser<Input, Output>::maybe()
+  inline ParserPtr<Input, Output> Parser<Input, Output>::otherwise(Output other)
   {
-    assert(*this);
-    return make_function(
-      [=, *this](IStream<Input> input) -> ParserResult<Input, std::optional<Output>> {
-        assert(*this);
-        std::optional<Output> output;
-        result_t pair = std::invoke(*func, input);
-        if (pair)
-        {
-          input = pair->second;
-          output = pair->first;
+    return make_parser(
+      make_function(
+        [other, self = this->shared_from_this()](IStream<Input> input) -> ParserResult<Input, Output> {
+          assert(*self);
+          Output output = other;
+          result_t pair = std::invoke(*self->func, input);
+          if (pair)
+          {
+            input = pair->second;
+            output = pair->first;
+          }
+          return std::make_pair(output, input);
         }
-        return std::make_pair(output, input);
-      }
+      )
     );
   }
 
   template<typename Input, typename Output>
-  inline Parser<Input, Output> Parser<Input, Output>::otherwise(Output other)
+  inline auto operator||(ParserPtr<Input, Output> lhs, ParserPtr<Input, Output> rhs)
+    -> ParserPtr<Input, Output>
   {
-    assert(*this);
-    return make_function(
-      [=, *this](IStream<Input> input) -> ParserResult<Input, Output> {
-        assert(*this);
-        Output output = other;
-        result_t pair = std::invoke(*func, input);
-        if (pair)
-        {
-          input = pair->second;
-          output = pair->first;
+    return make_parser(
+      make_function(
+        [=](IStream<Input> input) -> ParserResult<Input, Output> {
+          return std::invoke(*lhs, input) || std::invoke(*rhs, input);
         }
-        return std::make_pair(output, input);
-      }
-    );
-  }
-
-  template<typename Input, typename Output>
-  inline auto operator||(Parser<Input, Output> lhs, Parser<Input, Output> rhs)
-    -> Parser<Input, Output>
-  {
-    assert(lhs);
-    assert(rhs);
-    return make_function(
-      [=](IStream<Input> input) -> ParserResult<Input, Output> {
-        assert(lhs);
-        assert(rhs);
-        return std::invoke(lhs, input) || std::invoke(rhs, input);
-      }
+      )
     );
   }
 

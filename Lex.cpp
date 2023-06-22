@@ -42,47 +42,53 @@ function_ptr<std::string, std::list<char>> r5rs::lex::charList2String()
   return func;
 }
 
-Parser<Char, char> r5rs::lex::any()
+ParserPtr<Char, char> r5rs::lex::any()
 {
-  static auto parser = make_function(
-    [](IStream<Char> input) -> ParserResult<Char, char> {
-      auto && ch = input[0];
-      if (ch && ch->ch)
-      {
-        return std::make_pair(ch->ch, input + 1);
+  static auto parser = make_parser(
+    make_function(
+      [](IStream<Char> input) -> ParserResult<Char, char> {
+        auto && ch = input[0];
+        if (ch && ch->ch)
+        {
+          return std::make_pair(ch->ch, input + 1);
+        }
+        else
+        {
+          return Error{ "eof" };
+        }
       }
-      else
-      {
-        return Error{ "eof" };
-      }
-    }
+    )
   );
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::match(char c)
+ParserPtr<Char, char> r5rs::lex::match(char c)
 {
-  return make_function(
-    [=](IStream<Char> input) -> ParserResult<Char, char> {
-      if (input.eof()) { return Error{ "eof", input.current() }; }
-      if (c != input[0]->ch) { return Error{ "match fail.", input.current() }; }
-      return std::make_pair(input[0]->ch, input + 1);
-    }
+  return make_parser(
+    make_function(
+      [=](IStream<Char> input) -> ParserResult<Char, char> {
+        if (input.eof()) { return Error{ "eof", input.current() }; }
+        if (c != input[0]->ch) { return Error{ "match fail.", input.current() }; }
+        return std::make_pair(input[0]->ch, input + 1);
+      }
+    )
   );
 }
 
-Parser<Char, char> r5rs::lex::match(function_ptr<bool, char> pred)
+ParserPtr<Char, char> r5rs::lex::match(function_ptr<bool, char> pred)
 {
-  return make_function(
-    [=](IStream<Char> input) -> ParserResult<Char, char> {
-      if (input.eof()) { return Error{ "eof" }; }
-      if (!std::invoke(*pred, input[0]->ch)) { return Error{ "match fail." }; }
-      return std::make_pair(input[0]->ch, input + 1);
-    }
+  return make_parser(
+    make_function(
+      [=](IStream<Char> input) -> ParserResult<Char, char> {
+        if (input.eof()) { return Error{ "eof" }; }
+        if (!std::invoke(*pred, input[0]->ch)) { return Error{ "match fail." }; }
+        return std::make_pair(input[0]->ch, input + 1);
+      }
+    )
   );
 }
 
-Parser<Char, char> r5rs::lex::match_any_of(std::string set)
+ParserPtr<Char, char> r5rs::lex::match_any_of(std::string set)
 {
   return match(
     make_function(
@@ -93,53 +99,55 @@ Parser<Char, char> r5rs::lex::match_any_of(std::string set)
   );
 }
 
-Parser<Char, std::string> r5rs::lex::match(std::string str)
+ParserPtr<Char, std::string> r5rs::lex::match(std::string str)
 {
-  return make_function(
-    [str = std::move(str)](IStream<Char> input) -> ParserResult<Char, std::string> {
-      for (size_t i = 0; i != str.size(); ++i)
-      {
-        auto && x = input[i];
-        if (!x || x->ch != str[i])
+  return make_parser(
+    make_function(
+      [str = std::move(str)](IStream<Char> input) -> ParserResult<Char, std::string> {
+        for (size_t i = 0; i != str.size(); ++i)
         {
-          return Error{ "match fail." };
+          auto && x = input[i];
+          if (!x || x->ch != str[i])
+          {
+            return Error{ "match fail." };
+          }
         }
+        return std::make_pair(str, input + str.size());
       }
-      return std::make_pair(str, input + str.size());
-    }
+    )
   );
 }
 
-Parser<Char, nullptr_t> r5rs::lex::delimiter()
+ParserPtr<Char, nullptr_t> r5rs::lex::delimiter()
 {
   static auto parser =
     (match('\0') || match_any_of(" \t\r\n()\";"))
-    .as(nullptr);
+    ->as(nullptr);
   return parser;
 }
 
-Parser<Char, std::string> r5rs::lex::comment()
+ParserPtr<Char, std::string> r5rs::lex::comment()
 {
   static auto parser =
     select<1>(
       match(';'),
       match(make_function([](char ch) -> bool { return ch != '\0' && ch != '\n'; }))
-        .many()
-        .map(charList2String()),
+        ->many()
+        ->map(charList2String()),
       match('\n')
     );
   return parser;
 }
 
-Parser<Char, nullptr_t> r5rs::lex::intertoken_space()
+ParserPtr<Char, nullptr_t> r5rs::lex::intertoken_space()
 {
   static auto parser =
-    (match_any_of(" \t\r\n").as(std::string()) || comment())
-    .many().as(nullptr);
+    (match_any_of(" \t\r\n")->as(std::string()) || comment())
+    ->many()->as(nullptr);
   return parser;
 }
 
-Parser<Char, std::string> r5rs::lex::identifier()
+ParserPtr<Char, std::string> r5rs::lex::identifier()
 {
   static auto parser =
     peculiar_identifier() ||
@@ -153,18 +161,18 @@ Parser<Char, std::string> r5rs::lex::identifier()
       }
     ),
       initial(),
-      subsequent().many()
+      subsequent()->many()
     );
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::initial()
+ParserPtr<Char, char> r5rs::lex::initial()
 {
   static auto parser = letter() || special_initial();
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::letter()
+ParserPtr<Char, char> r5rs::lex::letter()
 {
   static auto parser = match(
     make_function(
@@ -176,19 +184,19 @@ Parser<Char, char> r5rs::lex::letter()
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::special_initial()
+ParserPtr<Char, char> r5rs::lex::special_initial()
 {
   static auto parser = match_any_of(R"(!$%&*/:<=>?^_~)");
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::subsequent()
+ParserPtr<Char, char> r5rs::lex::subsequent()
 {
   static auto parser = initial() || digit() || special_subsequent();
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::digit()
+ParserPtr<Char, char> r5rs::lex::digit()
 {
   static auto parser = match(
     make_function(
@@ -198,53 +206,53 @@ Parser<Char, char> r5rs::lex::digit()
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::special_subsequent()
+ParserPtr<Char, char> r5rs::lex::special_subsequent()
 {
   static auto parser = match_any_of(R"(+-.@)");
   return parser;
 }
 
-Parser<Char, std::string> r5rs::lex::peculiar_identifier()
+ParserPtr<Char, std::string> r5rs::lex::peculiar_identifier()
 {
   static auto char2str = make_function([](char ch) { return std::string{ch}; });
-  static auto parser = match_any_of(R"(+-)").map(char2str) || match("...");
+  static auto parser = match_any_of(R"(+-)")->map(char2str) || match("...");
   return parser;
 }
 
-Parser<Char, bool> r5rs::lex::boolean()
+ParserPtr<Char, bool> r5rs::lex::boolean()
 {
-  static auto parser = match("#t").as(true) || match("#f").as(false);
+  static auto parser = match("#t")->as(true) || match("#f")->as(false);
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::character()
+ParserPtr<Char, char> r5rs::lex::character()
 {
   static auto parser =
     select<1>(
       match("#\\"),
       (character_name() || any())
     )
-    .peek(delimiter());
+    ->peek(delimiter());
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::character_name()
+ParserPtr<Char, char> r5rs::lex::character_name()
 {
-  static auto parser = match("space").as(' ') || match("newline").as('\n');
+  static auto parser = match("space")->as(' ') || match("newline")->as('\n');
   return parser;
 }
 
-Parser<Char, std::string> r5rs::lex::string()
+ParserPtr<Char, std::string> r5rs::lex::string()
 {
   static auto parser = select<1>(
     match('"'),
-    string_element().many(),
+    string_element()->many(),
     match('"')
-  ).map(charList2String());
+  )->map(charList2String());
   return parser;
 }
 
-Parser<Char, char> r5rs::lex::string_element()
+ParserPtr<Char, char> r5rs::lex::string_element()
 {
   static auto normal = match(
     make_function(
@@ -254,15 +262,15 @@ Parser<Char, char> r5rs::lex::string_element()
     )
   );
   static auto parser =
-    match("\\\\").as('\\') ||
-    match("\\\"").as('"') ||
+    match("\\\\")->as('\\') ||
+    match("\\\"")->as('"') ||
     normal;
   return parser;
 }
 
-Parser<Char, int64_t> r5rs::lex::number()
+ParserPtr<Char, int64_t> r5rs::lex::number()
 {
-  static Parser digit =
+  static auto digit =
     match(
       make_function(
         [](char c) -> bool {
@@ -272,21 +280,21 @@ Parser<Char, int64_t> r5rs::lex::number()
     );
 
   static auto s2n = make_function(
-   [](std::string str) {
-     return std::stoll(str);
-   }
+    [](std::string str) {
+      return std::stoll(str);
+    }
   );
 
   static auto parser =
     digit
-    .some()
-    .map(charList2String())
-    .map(s2n);
+    ->some()
+    ->map(charList2String())
+    ->map(s2n);
 
   return parser;
 }
 
-Parser<Char, TokenType> r5rs::lex::single_symbol()
+ParserPtr<Char, TokenType> r5rs::lex::single_symbol()
 {
   static const std::unordered_map<char, TokenType> single{
     { '(', TokenType::left_paren },
@@ -311,12 +319,12 @@ Parser<Char, TokenType> r5rs::lex::single_symbol()
     }
   );
 
-  static auto parser = any().map(find).filter(cond);
+  static auto parser = any()->map(find)->filter(cond);
 
   return parser;
 }
 
-Parser<Char, TokenType> r5rs::lex::two_char_symbol()
+ParserPtr<Char, TokenType> r5rs::lex::two_char_symbol()
 {
   static const std::unordered_map<std::string, TokenType> two{
     { "#(", TokenType::vector_paren },
@@ -324,7 +332,7 @@ Parser<Char, TokenType> r5rs::lex::two_char_symbol()
   };
 
   static auto fail =
-    Parser(
+    make_parser(
       make_function(
         [](IStream<Char> input) -> ParserResult<Char, TokenType> {
           return Error{ "faild." };
@@ -336,7 +344,7 @@ Parser<Char, TokenType> r5rs::lex::two_char_symbol()
     auto lexer = fail;
     for (auto && [symbol, type] : two)
     {
-      lexer = lexer || match(symbol).as(type);
+      lexer = lexer || match(symbol)->as(type);
     }
     return lexer;
   }();
@@ -344,92 +352,96 @@ Parser<Char, TokenType> r5rs::lex::two_char_symbol()
   return lexer;
 }
 
-Parser<Char, TokenType> r5rs::lex::symbol()
+ParserPtr<Char, TokenType> r5rs::lex::symbol()
 {
   static auto parser = two_char_symbol() || single_symbol();
   return parser;
 }
 
-Parser<Char, Token> r5rs::lex::token()
+ParserPtr<Char, Token> r5rs::lex::token()
 {
-  static auto parser = make_function(
-    [&](IStream<Char> input) -> ParserResult<Char, Token> {
-      if (!input[0])
-      {
-        return Error{ "not find a char" };
+  static auto parser = make_parser(
+    make_function(
+      [&](IStream<Char> input) -> ParserResult<Char, Token> {
+        if (!input[0])
+        {
+          return Error{ "not find a char" };
+        }
+        auto line = input[0]->line;
+        auto col = input[0]->col;
+
+        auto make_token = [&](TokenType type, typename Token::value_t val = nullptr) {
+          return Token{ type, std::move(val), line, col };
+        };
+
+        auto && b = boolean()->map(
+          make_function(
+            [&](bool b) { return make_token(TokenType::boolean, b); }
+          )
+        );
+
+        auto && ch = character()->map(
+          make_function(
+            [&](char ch) {
+              return make_token(TokenType::character, ch);
+            }
+          )
+        );
+
+        auto && str = string()->map(
+          make_function(
+            [&](std::string str) {
+              return make_token(TokenType::string, str);
+            }
+          )
+        );
+
+        auto && num = number()->map(
+          make_function(
+            [&](int64_t n) {
+              return make_token(TokenType::number, n);
+            }
+          )
+        );
+
+        auto && id = identifier()->map(
+          make_function(
+            [&](std::string id) {
+              return make_token(TokenType::identifier, id);
+            }
+          )
+        );
+
+        auto && sym = symbol()->map(
+          make_function(
+            [&](TokenType type) {
+              return make_token(type);
+            }
+          )
+        );
+
+        return std::invoke(*(id || b || num || ch || str || sym), input);
       }
-      auto line = input[0]->line;
-      auto col = input[0]->col;
-
-      auto make_token = [&](TokenType type, typename Token::value_t val = nullptr) {
-        return Token{ type, std::move(val), line, col };
-      };
-
-      auto && b = boolean().map(
-        make_function(
-          [&](bool b) { return make_token(TokenType::boolean, b); }
-        )
-      );
-
-      auto && ch = character().map(
-        make_function(
-          [&](char ch) {
-            return make_token(TokenType::character, ch);
-          }
-        )
-      );
-
-      auto && str = string().map(
-        make_function(
-          [&](std::string str) {
-            return make_token(TokenType::string, str);
-          }
-        )
-      );
-
-      auto && num = number().map(
-        make_function(
-          [&](int64_t n) {
-            return make_token(TokenType::number, n);
-          }
-        )
-      );
-
-      auto && id = identifier().map(
-        make_function(
-          [&](std::string id) {
-            return make_token(TokenType::identifier, id);
-          }
-        )
-      );
-
-      auto && sym = symbol().map(
-        make_function(
-          [&](TokenType type) {
-            return make_token(type);
-          }
-        )
-      );
-
-      return (id || b || num || ch || str || sym)(input);
-    }
+    )
   );
   return parser;
 }
 
-Parser<Char, Token> r5rs::lex::eof()
+ParserPtr<Char, Token> r5rs::lex::eof()
 {
-  static auto parser = make_function(
-    [](IStream<Char> input) -> ParserResult<Char, Token> {
-      if (input[0] && input[0]->ch == '\xff')
-      {
-        return std::make_pair(
-          Token{ TokenType::eof, nullptr, input[0]->line, input[0]->col },
-          input + 1
-        );
+  static auto parser = make_parser(
+    make_function(
+      [](IStream<Char> input) -> ParserResult<Char, Token> {
+        if (input[0] && input[0]->ch == '\xff')
+        {
+          return std::make_pair(
+            Token{ TokenType::eof, nullptr, input[0]->line, input[0]->col },
+            input + 1
+          );
+        }
+        return Error{ "not found eof." };
       }
-      return Error{ "not found eof." };
-    }
+    )
   );
   return parser;
 }
@@ -443,7 +455,7 @@ IStream<Token> r5rs::tokens(IStream<Char> input)
   return IStream<Token>(
     make_function(
       [input]() mutable -> Try<Token> {
-        auto && res = parser(input);
+        auto && res = std::invoke(*parser, input);
         if (!res) { return Error{ "error." }; }
         input = res->second;
         return res->first;
