@@ -2,11 +2,12 @@
 #define _R5RS_TOKEN_H_
 
 #include <string>
+#include <unordered_map>
 
 #define R5RS_TOKEN_TYPE                                     \
   R5RS_TOKEN_TYPE_ACCESS(err)                               \
                                                             \
-  R5RS_TOKEN_TYPE_ACCESS(variable)                          \
+  R5RS_TOKEN_TYPE_ACCESS(identifier)                        \
   R5RS_TOKEN_TYPE_ACCESS(left_paren)                        \
   R5RS_TOKEN_TYPE_ACCESS(right_paren)                       \
   R5RS_TOKEN_TYPE_ACCESS(vector_paren)            /* #( */  \
@@ -21,36 +22,36 @@
   R5RS_TOKEN_TYPE_ACCESS(string)                            \
   R5RS_TOKEN_TYPE_ACCESS(number)                            \
                                                             \
-  /* syntactic keyword */                                   \
-  R5RS_TOKEN_TYPE_ACCESS(Else)                              \
-  R5RS_TOKEN_TYPE_ACCESS(evaluates_to) /* => */             \
-  R5RS_TOKEN_TYPE_ACCESS(define)                            \
-                                                            \
-  R5RS_TOKEN_TYPE_ACCESS(unquote)                           \
-  R5RS_TOKEN_TYPE_ACCESS(unquote_splicing)                  \
-                                                            \
-  /* expression keyword */                                  \
-  R5RS_TOKEN_TYPE_ACCESS(quote)                             \
-  R5RS_TOKEN_TYPE_ACCESS(lambda)                            \
-  R5RS_TOKEN_TYPE_ACCESS(If)                                \
-                                                            \
-  R5RS_TOKEN_TYPE_ACCESS(set_)                              \
-  R5RS_TOKEN_TYPE_ACCESS(begin)                             \
-  R5RS_TOKEN_TYPE_ACCESS(cond)                              \
-  R5RS_TOKEN_TYPE_ACCESS(And)                               \
-  R5RS_TOKEN_TYPE_ACCESS(Or)                                \
-  R5RS_TOKEN_TYPE_ACCESS(Case)                              \
-                                                            \
-  R5RS_TOKEN_TYPE_ACCESS(let)                               \
-  R5RS_TOKEN_TYPE_ACCESS(let_)                              \
-  R5RS_TOKEN_TYPE_ACCESS(letrec)                            \
-  R5RS_TOKEN_TYPE_ACCESS(Do)                                \
-  R5RS_TOKEN_TYPE_ACCESS(delay)                             \
-                                                            \
-  R5RS_TOKEN_TYPE_ACCESS(quasiquote)                        \
-                                                            \
   R5RS_TOKEN_TYPE_ACCESS(eof)                               \
 
+#define R5RS_KEYWORD                                        \
+  /* syntactic keyword */                                   \
+  R5RS_KEYWORD_ACCESS(Else, "else")                         \
+  R5RS_KEYWORD_ACCESS(evaluates_to, "=>")                   \
+  R5RS_KEYWORD_ACCESS(define, "define")                     \
+                                                            \
+  R5RS_KEYWORD_ACCESS(unquote, "unquote")                   \
+  R5RS_KEYWORD_ACCESS(unquote_splicing, "unquote-plicing")  \
+                                                            \
+  /* expression keyword */                                  \
+  R5RS_KEYWORD_ACCESS(quote, "quote")                       \
+  R5RS_KEYWORD_ACCESS(lambda, "lambda")                     \
+  R5RS_KEYWORD_ACCESS(If, "if")                             \
+                                                            \
+  R5RS_KEYWORD_ACCESS(set_, "set!")                         \
+  R5RS_KEYWORD_ACCESS(begin, "begin")                       \
+  R5RS_KEYWORD_ACCESS(cond, "cond")                         \
+  R5RS_KEYWORD_ACCESS(And, "and")                           \
+  R5RS_KEYWORD_ACCESS(Or, "or")                             \
+  R5RS_KEYWORD_ACCESS(Case, "case")                         \
+                                                            \
+  R5RS_KEYWORD_ACCESS(let, "let")                           \
+  R5RS_KEYWORD_ACCESS(let_, "let*")                         \
+  R5RS_KEYWORD_ACCESS(letrec, "letrec")                     \
+  R5RS_KEYWORD_ACCESS(Do, "do")                             \
+  R5RS_KEYWORD_ACCESS(delay, "delay")                       \
+                                                            \
+  R5RS_KEYWORD_ACCESS(quasiquote, "quasiquote")             \
 
 namespace r5rs
 {
@@ -61,7 +62,18 @@ namespace r5rs
 #undef R5RS_TOKEN_TYPE_ACCESS
   };
 
-  std::string TokenType2String(TokenType type);
+  enum class Keyword
+  {
+#define R5RS_KEYWORD_ACCESS(var, val) var,
+    R5RS_KEYWORD
+#undef R5RS_KEYWORD_ACCESS
+  };
+
+  std::string to_string(TokenType type);
+  std::string to_string(Keyword keyword);
+
+  const std::unordered_map<std::string, TokenType> & typeTokens();
+  const std::unordered_map<std::string, Keyword> & keywords();
 
   class Token final
   {

@@ -11,271 +11,239 @@
 
 namespace r5rs
 {
-  class Begin;
-  class Definition;
-  class DefFormals;
-  class SyntaxDefinition;
-
-  class Datum;
-  class Symbol;
-
-  class Variable;
-  class Identifier;
-
-  class Expression;
-
-  class Literal;
-  class SelfEvaluating;
-  class Quotation;
-  class ProcedureCall;
-
-  class LambdaExpression;
-  class Formals;
-  class Body;
-  class Sequence;
-  class Command;
-
-  class Conditional;
-  class Test;
-  class Consequent;
-  class Alternate;
-
-  class Assignment;
-  class DerivedExpression;
-
-  class CondClause;
-  class Recipient;
-  class CaseClause;
-  class BindingSpec;
-  class IterationSpec;
-  class Init;
-  class Step;
-  class DoResult;
-  class MacroUse;
-  class Keyword;
-  class MacroBlock;
-  class SyntaxSpec;
-  class Symbol
+  namespace expression
   {
-  public:
-    std::string name;
-  };
-
-  class Datum
-  {
-  public:
-    using value_t = std::variant<
-      bool,
-      char,
-      int64_t,
-      std::string,
-      Symbol,
-      std::shared_ptr<std::vector<Datum>>,
-      std::shared_ptr<std::list<Datum>>
-    >;
-    value_t value;
-  };
-
-  class Expression
-  {
-  public:
-    virtual ~Expression() = default;
-  };
-
-  class Variable: public Expression
-  {
-  public:
-    Variable(Token token)
+    // command or definition
+    struct COD
     {
-      assert(token.type == TokenType::variable);
-      name = std::get<std::string>(token.value);
-    }
-    std::string name;
-  };
+      virtual ~COD() = default;
+    };
 
-  class Literal: public Expression
-  {
-  public:
-    using value_t = std::variant<
-      nullptr_t,
-      bool,
-      char,
-      int64_t,
-      std::string,
-      Datum
-    >;
+    using CODPtr = std::shared_ptr<COD>;
 
-    Literal(Quotation quotation);
-    Literal(Token tok);
-
-    value_t value;
-  };
-
-  class ProcedureCall: public Expression
-  {
-  public:
-    std::shared_ptr<Expression> op;
-    std::shared_ptr<std::list<Expression>> operands;
-  };
-
-  class LambdaExpression: public Expression
-  {
-  };
-
-  class Formals
-  {
-  public:
-    std::list<Variable> variables;
-    std::optional<Variable> var;
-  };
-
-  class Conditional: public Expression
-  {
-  };
-
-  class Assignment: public Expression
-  {
-  };
-
-  class DerivedExpression: public Expression
-  {
-  };
-
-  class MacroUse: public Expression
-  {
-  };
-
-  class MacroBlock: public Expression
-  {
-  };
-
-  class Body {};
-
-  class Definitions;
-
-  class Definition
-  {
-  public:
-    struct Func
+    struct Datum
     {
-      Variable var;
-      std::shared_ptr<DefFormals> formals;
+      struct Symbol
+      {
+        std::string name;
+      };
+
+      virtual ~Datum() = default;
+    };
+
+    using DatumPtr = std::shared_ptr<Datum>;
+
+    struct Definition: COD
+    {
+      ~Definition() override = default;
+    };
+
+    using DefinitionPtr = std::shared_ptr<Definition>;
+
+    struct Exp: COD
+    {
+      ~Exp() override = default;
+    };
+
+    using ExpPtr = std::shared_ptr<Exp>;
+
+    class CODs: public COD
+    {
+    public:
+      std::list<std::shared_ptr<COD>> cods;
+      explicit CODs(std::list<CODPtr> cods): cods(std::move(cods)) {}
+    };
+
+    class SimpleDatum: public Datum
+    {
+    public:
+      using value_t = std::variant<
+        char,
+        bool,
+        int64_t,
+        std::string,
+        Symbol
+      >;
+      explicit SimpleDatum(value_t value): value(std::move(value)) {}
+
+      value_t value;
+    };
+
+    class ListDatum: public Datum
+    {
+    public:
+      std::list<DatumPtr> list;
+      explicit ListDatum(std::list<DatumPtr> list): list(std::move(list)) {}
+    };
+
+    class VectorDatum: public Datum
+    {
+    public:
+      std::list<DatumPtr> list;
+      explicit VectorDatum(std::list<DatumPtr> list): list(std::move(list)) {}
+    };
+
+    class Variable: public Exp
+    {
+    public:
+      std::string id;
+      explicit Variable(std::string id): id(std::move(id)) {}
+    };
+
+    class Literal: public Exp
+    {
+    public:
+      using value_t = std::variant<
+        DatumPtr,
+        bool,
+        char,
+        int64_t,
+        std::string
+      >;
+
+      value_t value;
+      explicit Literal(value_t value): value(std::move(value)) {}
+    };
+
+    class Call: public Exp
+    {
+    public:
+      ExpPtr op;
+      std::list<ExpPtr> operands;
+
+      explicit Call(ExpPtr op, std::list<ExpPtr> ops): op(op), operands(std::move(ops)) {}
+    };
+
+    class Formals
+    {
+    public:
+      std::list<std::string> fixed;
+      std::optional<std::string> binding;
+      explicit Formals(
+        std::list<std::string> fixed = {},
+        std::optional<std::string> binding = std::nullopt
+      ): fixed{ std::move(fixed) }, binding{ std::move(binding) }
+      {
+      }
+    };
+
+    class Body
+    {
+    public:
+      std::list<DefinitionPtr> defs;
+      std::list<ExpPtr> exps;
+      explicit Body(
+        std::list<DefinitionPtr> defs,
+        std::list<ExpPtr> exps
+      ): defs(std::move(defs)), exps(std::move(exps))
+      {
+      }
+    };
+
+    class Lambda: public Exp
+    {
+    public:
+      std::shared_ptr<Formals> formals;
       std::shared_ptr<Body> body;
+      explicit Lambda(
+      std::shared_ptr<Formals> formals,
+      std::shared_ptr<Body> body
+      ): formals(formals), body(body)
+      {
+      }
     };
-    struct Var
+
+    class Conditional: public Exp
     {
-      Variable var;
-      Expression value;
+    public:
+      ExpPtr test;
+      ExpPtr consequent;
+      ExpPtr alternate;
+      explicit Conditional(
+        ExpPtr test,
+        ExpPtr consequent,
+        ExpPtr alternate
+      ): test(test), consequent(consequent), alternate(alternate)
+      {
+      }
     };
-    using value_t = std::variant<Var, Func, std::shared_ptr<Definitions>>;
-    value_t value;
-  };
 
-  class Definitions
-  {
-  public:
-    std::list<Definition> defs;
-  };
+    class Assignment: public Exp
+    {
+    public:
+      std::string variable;
+      ExpPtr exp;
+      explicit Assignment(
+        std::string variable,
+        ExpPtr exp
+      ): variable(std::move(variable)), exp(exp)
+      {
+      }
+    };
 
-  class DefFormals
-  {
-  public:
-    std::list<Variable> variables;
-    std::optional<Variable> var;
-  };
+    class Define: public Definition
+    {
+    public:
+      std::string variable;
+      ExpPtr exp;
+      explicit Define(std::string var, ExpPtr exp): variable(std::move(var)), exp(exp) {};
+    };
 
-  class SyntaxDefinition
-  {
+    class Definitions: public Definition
+    {
+    public:
+      std::list<DefinitionPtr> defs;
+      explicit Definitions(std::list<DefinitionPtr> defs): defs(std::move(defs)) {};
+    };
 
-  };
-
-  class Quotation
-  {
-  public:
-    Datum datum;
-  };
-
-  class SelfEvaluating
-  {
-  public:
-    using value_t = std::variant<bool, char, int64_t, std::string>;
-    value_t value;
-  };
-
-  class Command
-  {
-  public:
-    Expression exp;
-  };
-
-  class Begin {};
-
-  class CODs;
-
-  using COD = std::variant<
-    Command,
-    Definition,
-    SyntaxDefinition,
-    std::shared_ptr<CODs>
-  >;
-
-  class CODs
-  {
-  public:
-    std::list<COD> cods;
-  };
-
-  using Program = std::list<COD>;
-
-  Parser<Token, Program> program();
-  IStream<Expression> expressions();
-
-  namespace def
-  {
-    Parser<Token, COD> cod();
-  } // namespace def
-
-  namespace exp
-  {
-    template<TokenType ... T>
-    inline Parser<Token, Token> match()
+    template<typename T = nullptr_t>
+    Parser<Token, T> match(TokenType type)
     {
       return make_function(
-        [=](IStream<Token> input) -> ParserResult<Token, Token> {
+        [=](IStream<Token> input) -> ParserResult<Token, T> {
           if (input.eof()) { return Error{ "eof", input.current() }; }
-          if ((... || (T == input[0]->type)))
+          if (type != input[0]->type) { return Error{ "match fail.", input.current() }; }
+          if (!std::holds_alternative<T>(input[0]->value))
           {
-            return std::make_pair(*input[0], input + 1);
+            return Error{ "type error.", input.current() };
           }
-          { return Error{ "match fail.", input.current() }; }
+          return std::make_pair(std::get<T>(input[0]->value), input + 1);
         }
       );
     }
 
-    Parser<Token, Datum> datum();
-    Parser<Token, Variable> variable();
+    Parser<Token, nullptr_t> match(Keyword keyword);
+    Parser<Token, std::string> variable();
 
-    Parser<Token, Expression> expression();
+    Parser<Token, DatumPtr> simpleDatum();
+    Parser<Token, DatumPtr> listDatum();
+    Parser<Token, DatumPtr> vectorDatum();
+    Parser<Token, DatumPtr> quotation();
 
     Parser<Token, Literal> literal();
-    Parser<Token, Token> self_evaluating();
-    Parser<Token, Quotation> quotation();
-    Parser<Token, ProcedureCall> procedureCall();
-
-    Parser<Token, LambdaExpression> lambdaExpression();
-    Parser<Token, Formals> formals();
+    Parser<Token, Call> call();
+    Parser<Token, Lambda> lambda();
     Parser<Token, Conditional> conditional();
     Parser<Token, Assignment> assignment();
-    Parser<Token, DerivedExpression> derivedExpression();
-    Parser<Token, MacroUse> macroUse();
-    Parser<Token, MacroBlock> macroBlock();
-    Parser<Token, Command> command();
-    Parser<Token, Definition> definition();
-    Parser<Token, DefFormals> defFormals();
+
+    Parser<Token, Formals> formals();
+    Parser<Token, Formals> defFormals();
     Parser<Token, Body> body();
 
-  } // namespace exp
+    Parser<Token, DefinitionPtr> definitions();
+    Parser<Token, CODPtr> cod();
+    Parser<Token, CODs> cods();
+  } // namespace expression
 
+  using Program = expression::CODs;
+  using Datum = expression::Datum;
+  using Exp = expression::Exp;
+  using Definition = expression::Definition;
+
+  Parser<Token, std::shared_ptr<Datum>> datum();
+  Parser<Token, std::shared_ptr<Exp>> exp();
+  Parser<Token, Program> program();
+  Parser<Token, std::shared_ptr<Definition>> definition();
 } // namespace r5rs
 
 #endif

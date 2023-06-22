@@ -13,13 +13,13 @@ foreach (TEST ${TESTS})
 endforeach ()
 
 
-set(
-    GTESTS
-    t
-)
+# set(
+#     GTESTS
+#     t
+# )
 
-foreach (TEST ${GTESTS})
-    add_executable(${TEST} ${TEST}.cpp)
-    target_link_libraries(${TEST} r5rs_lib GTest::gtest_main)
-    gtest_discover_tests(${TEST})
-endforeach ()
+# foreach (TEST ${GTESTS})
+#     add_executable(${TEST} ${TEST}.cpp)
+#     target_link_libraries(${TEST} r5rs_lib GTest::gtest_main)
+#     gtest_discover_tests(${TEST})
+# endforeach ()

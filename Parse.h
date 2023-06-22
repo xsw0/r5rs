@@ -86,6 +86,8 @@ namespace r5rs
     Parser<Input, std::list<Output>> some();
     Parser<Input, std::optional<Output>> maybe();
 
+    Parser<Input, Output> otherwise(Output output);
+
     function_t func;
   };
 
@@ -268,6 +270,25 @@ namespace r5rs
       [=, *this](IStream<Input> input) -> ParserResult<Input, std::optional<Output>> {
         assert(*this);
         std::optional<Output> output;
+        result_t pair = std::invoke(*func, input);
+        if (pair)
+        {
+          input = pair->second;
+          output = pair->first;
+        }
+        return std::make_pair(output, input);
+      }
+    );
+  }
+
+  template<typename Input, typename Output>
+  inline Parser<Input, Output> Parser<Input, Output>::otherwise(Output other)
+  {
+    assert(*this);
+    return make_function(
+      [=, *this](IStream<Input> input) -> ParserResult<Input, Output> {
+        assert(*this);
+        Output output = other;
         result_t pair = std::invoke(*func, input);
         if (pair)
         {

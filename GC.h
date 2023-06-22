@@ -83,7 +83,7 @@ namespace r5rs
     friend class GC;
 
     constexpr inline static unsigned MARK = 1 << 31;
-    inline static size_t capacity = 0x1000;
+    inline static size_t capacity = 0x10;
 
     static void ref(Object * obj);
     static void unref(Object * obj);

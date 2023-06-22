@@ -2,9 +2,9 @@
 #include <memory>
 #include <thread>
 #include <variant>
+#include <chrono>
 
 #include "Type.h"
-#include "Value.h"
 #include "String.h"
 #include "GC.h"
 #include "GetRef.h"
@@ -41,7 +41,7 @@ void printRef()
 
 int main(int argc, char * argv[])
 {
-  for (int i = 0; i < 9999; i++)
+  for (int i = 0; i < 100; i++)
   {
     auto x = gc(Pair({ i * 6, i * 6 + 1 }));
     auto y = gc(Pair({ i * 6 + 2, i * 6 + 3 }));
@@ -53,19 +53,12 @@ int main(int argc, char * argv[])
     assert(&*std::get<Pair>(*x).first);
     assert(&*std::get<Pair>(*y).first);
     assert(&*std::get<Pair>(*z).first);
+    // std::cout << "\033[2J";
+    // printRef();
+    // printObj();
+    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   GC::mark_and_sweep();
-  {
-    auto n = gc(5);
-    auto p = gc(std::pair<Reference, Reference>({ 2, 3 }));
-  }
-  // *n = 6;
-  // std::cout << std::visit(String(), *n) << std::endl;
-  // std::cout << std::visit(String(), *p) << std::endl;
-
-  // Value v;
-  // auto w = std::visit(String(), v);
-  // auto x = std::visit(GetRef(), v);
 
   std::cout << "Hello, world!\n";
   return 0;

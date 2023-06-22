@@ -3,34 +3,34 @@
 
 #include "GC.h"
 #include "Lex.h"
+#include "Expressions.h"
+#include "color.h"
+#include "String.h"
 
 using namespace std;
 using namespace r5rs;
 
-bool is_digit(char c)
-{
-  return std::isdigit(c);
-}
-
 int main(int argc, char * argv[])
 {
-  auto add = malloc(sizeof(std::vector<Reference>));
-
   if (argc == 1)
   {
-    std::string line;
-    while (std::getline(std::cin, line))
-    {
-      CharInput input{ line.cbegin(), line.cend() };
+    std::cout << "start" << std::endl;
 
-      auto lexer = token_character().many();
-      auto res = lexer(input)->first;
-      for (auto && c : res)
-      {
-        cout << (int)c;
-      }
-      cout << endl;
+    auto toks = tokens(cinIStream());
+
+    for (size_t i = 0; toks[i]; ++i)
+    {
+      auto && tok = *toks[i];
+      std::cout
+        << C_BOLD << r5rs::to_string(tok.type)
+        << C_BLACK << "[" << tok.row << ":" << tok.col << "]:"
+        << C_GREEN << std::visit(String(), tok.value)
+        << C_BLACK << std::endl;
     }
+
+    auto p = program()(toks);
+
+    std::cout << "end" << std::endl;
   }
   else if (argc == 2)
   {

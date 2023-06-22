@@ -4,6 +4,8 @@
 #include "Parse.h"
 #include "Token.h"
 
+#include <unordered_map>
+
 namespace r5rs
 {
   IStream<Token> tokens(IStream<Char> input);

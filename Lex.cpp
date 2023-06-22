@@ -352,30 +352,6 @@ Parser<Char, TokenType> r5rs::lex::symbol()
 
 Parser<Char, Token> r5rs::lex::token()
 {
-  static const std::unordered_map<std::string, TokenType> keyword {
-    { "else", TokenType::Else },
-    { "=>", TokenType::evaluates_to },
-    { "define", TokenType::define },
-    { "unquote", TokenType::unquote },
-    { "unquote-splicing", TokenType::unquote_splicing },
-
-    { "quote", TokenType::quote },
-    { "lambda", TokenType::lambda },
-    { "if", TokenType::If },
-    { "set!", TokenType::set_ },
-    { "begin", TokenType::begin },
-    { "cond", TokenType::cond },
-    { "and", TokenType::And },
-    { "or", TokenType::Or },
-    { "case", TokenType::Case },
-    { "let", TokenType::let },
-    { "let*", TokenType::let_ },
-    { "letrec", TokenType::letrec },
-    { "do", TokenType::Do },
-    { "delay", TokenType::delay },
-    { "quasiquote", TokenType::quasiquote },
-  };
-
   static auto parser = make_function(
     [&](IStream<Char> input) -> ParserResult<Char, Token> {
       if (!input[0])
@@ -422,15 +398,7 @@ Parser<Char, Token> r5rs::lex::token()
       auto && id = identifier().map(
         make_function(
           [&](std::string id) {
-            auto it = keyword.find(id);
-            if (it == keyword.end())
-            {
-              return make_token(TokenType::variable, id);
-            }
-            else
-            {
-              return make_token(it->second, nullptr);
-            }
+            return make_token(TokenType::identifier, id);
           }
         )
       );
