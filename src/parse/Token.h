@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 #define R5RS_TOKEN_TYPE                                                        \
   R5RS_TOKEN_TYPE_ACCESS(err)                                                  \
@@ -54,32 +55,32 @@
   R5RS_KEYWORD_ACCESS(quasiquote, "quasiquote")
 
 namespace r5rs {
-enum class TokenType {
+  enum class TokenType {
 #define R5RS_TOKEN_TYPE_ACCESS(id) id,
-  R5RS_TOKEN_TYPE
+    R5RS_TOKEN_TYPE
 #undef R5RS_TOKEN_TYPE_ACCESS
-};
+  };
 
-enum class Keyword {
+  enum class Keyword {
 #define R5RS_KEYWORD_ACCESS(var, val) var,
-  R5RS_KEYWORD
+    R5RS_KEYWORD
 #undef R5RS_KEYWORD_ACCESS
-};
+  };
 
-std::string to_string(TokenType type);
-std::string to_string(Keyword keyword);
+  std::string to_string(TokenType type);
+  std::string to_string(Keyword keyword);
 
-const std::unordered_map<std::string, TokenType> &typeTokens();
-const std::unordered_map<std::string, Keyword> &keywords();
+  const std::unordered_map<std::string, TokenType>& typeTokens();
+  const std::unordered_map<std::string, Keyword>& keywords();
 
-class Token final {
-public:
-  using value_t = std::variant<nullptr_t, bool, char, int64_t, std::string>;
-  TokenType type = TokenType::err;
-  value_t value = nullptr;
-  size_t row = 0;
-  size_t col = 0;
-};
+  class Token final {
+  public:
+    using value_t = std::variant<nullptr_t, bool, char, int64_t, std::string>;
+    TokenType type = TokenType::err;
+    value_t value = nullptr;
+    size_t row = 0;
+    size_t col = 0;
+  };
 } // namespace r5rs
 
 #endif

@@ -8,61 +8,50 @@
 #include "GC.h"
 #include "Type.h"
 
-namespace r5rs
-{
-  class Env: public std::enable_shared_from_this<Env>
-  {
+namespace r5rs {
+  class Env : public std::enable_shared_from_this<Env> {
   public:
     std::shared_ptr<Env> parent = nullptr;
     std::unordered_map<std::string, Reference> variables;
-    explicit Env(std::shared_ptr<Env> parent = nullptr): parent(parent) {}
+    explicit Env(std::shared_ptr<Env> parent = nullptr) : parent(parent) {}
 
-    explicit Env(const expression::Formals & formals,
-                 const std::list<Reference> & args,
-                 std::shared_ptr<Env> parent = nullptr)
-      : parent(parent)
-    {
-      if (args.size() < formals.fixed.size())
-      {
+    explicit Env(const expression::Formals& formals,
+      const std::list<Reference>& args,
+      std::shared_ptr<Env> parent = nullptr)
+      : parent(parent) {
+      if (args.size() < formals.fixed.size()) {
         throw std::runtime_error("Insufficient number of parameters");
       }
-      if (!formals.binding && args.size() > formals.fixed.size())
-      {
+      if (!formals.binding && args.size() > formals.fixed.size()) {
         throw std::runtime_error("redundant arguments");
       }
       auto var = formals.fixed.begin();
       auto val = args.begin();
-      for (; var != formals.fixed.end(); ++var, ++val)
-      {
+      for (; var != formals.fixed.end(); ++var, ++val) {
         variables.insert({ *var, *val });
       }
 
-      if (formals.binding)
-      {
+      if (formals.binding) {
         Reference head = nullptr;
 
         auto it = args.end();
-        while (it != val)
-        {
+        while (it != val) {
           head = Pair{ *std::prev(it), head };
           --it;
         }
 
-        variables.insert({ *formals.binding, std::move(head) });
+        variables.emplace(*formals.binding, std::move(head));
       }
     }
 
-    void set(const std::string & var, Reference val) { variables[var] = val; }
+    void set(const std::string& var, Reference val) { variables[var] = val; }
 
-    std::optional<Reference> get(const std::string & var)
-    {
+    std::optional<Reference> get(const std::string& var) {
       auto it = variables.find(var);
-      if (it != variables.end())
-      {
+      if (it != variables.end()) {
         return it->second;
       }
-      if (!parent)
-      {
+      if (!parent) {
         return std::nullopt;
       }
       return parent->get(var);

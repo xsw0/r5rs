@@ -24,7 +24,7 @@ std::string r5rs::to_string(Keyword keyword) {
   return names.at(keyword);
 }
 
-const std::unordered_map<std::string, TokenType> &r5rs::typeTokens() {
+const std::unordered_map<std::string, TokenType>& r5rs::typeTokens() {
   static const std::unordered_map<std::string, TokenType> table{
 #define R5RS_TOKEN_TYPE_ACCESS(id) {#id, TokenType::id},
       R5RS_TOKEN_TYPE
@@ -34,7 +34,7 @@ const std::unordered_map<std::string, TokenType> &r5rs::typeTokens() {
   return table;
 }
 
-const std::unordered_map<std::string, Keyword> &r5rs::keywords() {
+const std::unordered_map<std::string, Keyword>& r5rs::keywords() {
   static const std::unordered_map<std::string, Keyword> table{
 #define R5RS_KEYWORD_ACCESS(id, name) {name, Keyword::id},
       R5RS_KEYWORD

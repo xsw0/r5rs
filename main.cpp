@@ -11,7 +11,7 @@
 using namespace std;
 using namespace r5rs;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc == 1) {
     // r5rs::expression::init();
 
@@ -36,21 +36,19 @@ int main(int argc, char *argv[]) {
     Try<r5rs::expression::CODPtr> cod;
 
     std::string mem_dot = "../dot/mem.dot";
-    std::ofstream file(mem_dot, std::ios::trunc | std::ios::out);
-    file << interpreter.env->print() << std::endl;
 
     while ((cod = stream[0])) {
       std::cout << std::visit(String(), *std::invoke(interpreter, cod->get()))
-                << std::endl;
-      std::ofstream file(mem_dot, std::ios::trunc | std::ios::out);
-      file << interpreter.env->print() << std::endl;
+        << std::endl;
       stream += 1;
     }
 
     std::cout << "end" << std::endl;
-  } else if (argc == 2) {
+  }
+  else if (argc == 2) {
 
-  } else {
+  }
+  else {
     std::cerr << "usage: r5rs [filename]" << std::endl;
     return -1;
   }
