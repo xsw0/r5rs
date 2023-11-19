@@ -3,6 +3,7 @@ set(
     GCTest
     # GCTestMuti
     parseToken
+    value_ref
 )
 
 foreach (TEST ${TESTS})
