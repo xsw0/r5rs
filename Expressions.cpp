@@ -120,11 +120,11 @@ ParserPtr<Token, std::shared_ptr<Exp>> r5rs::exp()
   return parser;
 }
 
-ParserPtr<Token, Program> r5rs::program()
-{
-  static auto parser = make_parser<Token, Program>();
-  return parser;
-}
+// ParserPtr<Token, Program> r5rs::program()
+// {
+//   static auto parser = make_parser<Token, Program>();
+//   return parser;
+// }
 
 ParserPtr<Token, nullptr_t> r5rs::expression::match(Keyword keyword)
 {
@@ -158,7 +158,7 @@ namespace
       match<int64_t>(TokenType::number)->as<SimpleDatum>() ||
       match<char>(TokenType::character)->as<SimpleDatum>() ||
       match<std::string>(TokenType::string)->as<SimpleDatum>() ||
-      match<std::string>(TokenType::identifier)->as<Datum::Symbol>()->as<SimpleDatum>()
+      match<std::string>(TokenType::identifier)->as<Symbol>()->as<SimpleDatum>()
       )->shared()->as<DatumPtr>();
   }
 
@@ -199,10 +199,10 @@ namespace
     );
   }
 
-  void programInit()
-  {
-    *program() = *select<0>(cod()->many()->as<CODs>(), match<>(TokenType::eof));
-  }
+  // void programInit()
+  // {
+  //   *program() = *select<0>(cod()->many()->as<CODs>(), match<>(TokenType::eof));
+  // }
 
   void quotationInit()
   {
@@ -473,7 +473,7 @@ void r5rs::expression::init()
   vectorDatumInit();
   datumInit();
   expInit();
-  programInit();
+  // programInit();
   quotationInit();
   literalInit();
   callInit();
@@ -494,7 +494,7 @@ void r5rs::expression::init()
   assert(*vectorDatum());
   assert(*datum());
   assert(*exp());
-  assert(*program());
+  // assert(*program());
   assert(*quotation());
   assert(*literal());
   assert(*call());
@@ -508,4 +508,21 @@ void r5rs::expression::init()
   assert(*definitions());
   assert(*cod());
   assert(*cods());
+}
+
+IStream<expression::CODPtr> r5rs::ast(IStream<Token> input)
+{
+  static std::once_flag flag;
+  std::call_once(flag, []() { init(); });
+
+  return IStream<CODPtr>(
+    make_function(
+      [input]() mutable -> Try<CODPtr> {
+        auto && res = std::invoke(*cod(), input);
+        if (!res) { return Error{ "error." }; }
+        input = res->second;
+        return res->first;
+      }
+    )
+  );
 }

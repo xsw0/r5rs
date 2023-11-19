@@ -11,15 +11,18 @@ namespace r5rs
   class GetRef final
   {
   public:
-    std::vector<Reference *> operator()(std::monostate value);
-    std::vector<Reference *> operator()(nullptr_t value);
-    std::vector<Reference *> operator()(bool value);
-    std::vector<Reference *> operator()(char value);
-    std::vector<Reference *> operator()(int64_t value);
-    std::vector<Reference *> operator()(double value);
-    std::vector<Reference *> operator()(const std::string & value);
-    std::vector<Reference *> operator()(Pair & value);
-    std::vector<Reference *> operator()(std::vector<Reference> & value);
+    std::vector<InternalReference *> operator()(std::monostate value);
+    std::vector<InternalReference *> operator()(nullptr_t value);
+    std::vector<InternalReference *> operator()(bool value);
+    std::vector<InternalReference *> operator()(char value);
+    std::vector<InternalReference *> operator()(int64_t value);
+    std::vector<InternalReference *> operator()(double value);
+    std::vector<InternalReference *> operator()(const std::string & value);
+    std::vector<InternalReference *> operator()(const Symbol & value);
+    std::vector<InternalReference *> operator()(Pair & value);
+    std::vector<InternalReference *> operator()(std::vector<InternalReference> & value);
+    std::vector<InternalReference *> operator()(ClosureLambda lambda);
+    std::vector<InternalReference *> operator()(Primitive primitive);
   };
 } // namespace r5rs
 

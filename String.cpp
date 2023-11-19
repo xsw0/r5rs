@@ -42,6 +42,11 @@ std::string r5rs::String::operator()(const std::string & value)
   return '"' + value + '"';
 }
 
+std::string r5rs::String::operator()(const Symbol & value)
+{
+  return "'" + value.name;
+}
+
 template< typename T >
 std::string int_to_hex(T i)
 {
@@ -57,7 +62,7 @@ std::string r5rs::String::operator()(const Pair & value)
   return "(" + int_to_hex((intptr_t) & *value.first) + " . " + int_to_hex((intptr_t) & *value.second) + ")";
 }
 
-std::string r5rs::String::operator()(const std::vector<Reference> & value)
+std::string r5rs::String::operator()(const Vector & value)
 {
   // std::string result("#(");
   // for (auto && v : value)
@@ -68,3 +73,18 @@ std::string r5rs::String::operator()(const std::vector<Reference> & value)
   // return result;;
   return "#";
 }
+
+std::string r5rs::String::operator()(const ClosureLambda & value)
+{
+  return std::string();
+}
+
+std::string r5rs::String::operator()(const Primitive & value)
+{
+  return std::string();
+}
+
+// std::string r5rs::String::operator()(auto value)
+// {
+//   return typeid(value).name();
+// }

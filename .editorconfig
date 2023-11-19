@@ -1,4 +1,6 @@
-[*.{h,cpp}]
+root = true;
+
+[*]
 indent_style = space
 indent_size = 2
 end_of_line = lf
@@ -9,6 +11,7 @@ max_line_length = 80
 curly_bracket_next_line = true
 spaces_around_operators = true
 
+[*.{h,cpp}]
 cpp_indent_braces = false
 cpp_indent_multi_line_relative_to=innermost_parenthesis
 cpp_indent_within_parentheses=align_to_parenthesis
@@ -51,7 +54,7 @@ cpp_space_before_open_square_bracket=false
 cpp_space_within_square_brackets=false
 cpp_space_before_empty_square_brackets=false
 cpp_space_between_empty_square_brackets=false
-cpp_space_group_square_brackets=false # ?
+cpp_space_group_square_brackets=true # ?
 cpp_space_within_lambda_brackets=false
 cpp_space_between_empty_lambda_brackets=false
 cpp_space_before_comma=false

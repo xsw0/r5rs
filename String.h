@@ -20,8 +20,12 @@ namespace r5rs
     std::string operator()(int64_t value);
     std::string operator()(double value);
     std::string operator()(const std::string & value);
+    std::string operator()(const Symbol & value);
     std::string operator()(const Pair & value);
-    std::string operator()(const std::vector<Reference> & value);
+    std::string operator()(const Vector & value);
+    std::string operator()(const ClosureLambda & value);
+    std::string operator()(const Primitive & value);
+    // std::string operator()(auto value);
   };
 } // namespace r5rs
 

@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <type_traits>
+#include <list>
 
 namespace r5rs
 {
@@ -90,9 +91,34 @@ namespace r5rs
     }
   }
 
+  template<class... Ts>
+  struct overloaded: Ts... { using Ts::operator()...; };
+  template<class... Ts>
+  overloaded(Ts...) -> overloaded<Ts...>;
+
+  class InternalReference;
   class Reference;
 
-  using Pair = std::pair<Reference, Reference>;
+  using Pair = std::pair<InternalReference, InternalReference>;
+
+  struct Symbol
+  {
+    std::string name;
+  };
+
+  namespace expression { class Lambda; }
+  class Env;
+
+  class ClosureLambda
+  {
+  public:
+    expression::Lambda * lambda;
+    std::shared_ptr<Env> env;
+  };
+
+  using Primitive = Reference(*)(std::list<Reference> &);
+
+  using Vector = std::vector<InternalReference>;
 
   using Value = std::variant<
     // std::monostate,
@@ -102,8 +128,11 @@ namespace r5rs
     int64_t,
     double,
     std::string,
+    Symbol,
     Pair,
-    std::vector<Reference>
+    Vector,
+    ClosureLambda,
+    Primitive
   >;
 
   template<typename Ret, typename ... Args>

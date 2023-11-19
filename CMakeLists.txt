@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.27)
 
-cmake_policy(SET CMP0135 NEW)
-
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD 23)
+
 project(r5rs VERSION 0.1.0)
 
 include(CTest)
@@ -31,7 +31,9 @@ set(CPPS
         ${CMAKE_SOURCE_DIR}/GC.cpp
         ${CMAKE_SOURCE_DIR}/Parse.cpp
         ${CMAKE_SOURCE_DIR}/Lex.cpp
+        ${CMAKE_SOURCE_DIR}/Env.cpp
         ${CMAKE_SOURCE_DIR}/Expressions.cpp
+        ${CMAKE_SOURCE_DIR}/Interpreter.cpp
         )
 
 add_library(r5rs_lib STATIC ${CPPS})

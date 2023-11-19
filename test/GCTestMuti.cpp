@@ -17,12 +17,12 @@ using namespace r5rs;
 void printObj()
 {
   std::cout << "print obj" << std::endl;
-  auto * ref = Object::global.next;
-  while (ref != &Object::global)
+  auto * ref = GC::global.next;
+  while (ref != &GC::global)
   {
     assert(ref->prev->next == ref);
     assert(ref->next->prev == ref);
-    auto r = static_cast<Object *>(ref);
+    auto r = static_cast<GC *>(ref);
     std::cout << &r->value << "\t" << std::hex << r->mask << "\t" << std::visit(String(), r->value) << std::endl;
     ref = ref->next;
   }
@@ -31,19 +31,19 @@ void printObj()
 void printRef()
 {
   std::cout << "print ref" << std::endl;
-  auto * ref = Reference::global.next;
-  while (ref != &Reference::global)
+  auto * ref = InternalReference::global.next;
+  while (ref != &InternalReference::global)
   {
     assert(ref->prev->next == ref);
     assert(ref->next->prev == ref);
-    auto r = static_cast<Reference *>(ref);
+    auto r = static_cast<InternalReference *>(ref);
     std::cout << &**r << "\t" << std::visit(String(), **r) << std::endl;
     ref = ref->next;
   }
 }
 
 std::mutex mtx;
-vector<Reference> vec;
+vector<InternalReference> vec;
 random_device rd;
 default_random_engine re(rd());
 

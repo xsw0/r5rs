@@ -14,12 +14,12 @@ using namespace r5rs;
 void printObj()
 {
   std::cout << "print obj" << std::endl;
-  auto * ref = Object::global.next;
-  while (ref != &Object::global)
+  auto * ref = GC::global.next;
+  while (ref != &GC::global)
   {
     assert(ref->prev->next == ref);
     assert(ref->next->prev == ref);
-    auto r = static_cast<Object *>(ref);
+    auto r = static_cast<GC *>(ref);
     std::cout << &r->value << "\t" << std::hex << r->mask << "\t" << std::visit(String(), r->value) << std::endl;
     ref = ref->next;
   }
@@ -43,9 +43,12 @@ int main(int argc, char * argv[])
 {
   for (int i = 0; i < 100; i++)
   {
-    auto x = gc(Pair({ i * 6, i * 6 + 1 }));
-    auto y = gc(Pair({ i * 6 + 2, i * 6 + 3 }));
-    auto z = gc(Pair({ i * 6 + 4, i * 6 + 5 }));
+    auto x = Reference(Pair({ i * 6, i * 6 + 1 }));
+    assert(x.obj->count() == 1);
+    auto y = Reference(Pair({ i * 6 + 2, i * 6 + 3 }));
+    assert(y.obj->count() == 1);
+    auto z = Reference(Pair({ i * 6 + 4, i * 6 + 5 }));
+    assert(z.obj->count() == 1);
     std::get<Pair>(*x).first = y;
     std::get<Pair>(*y).first = z;
     std::get<Pair>(*z).first = x;
@@ -53,10 +56,9 @@ int main(int argc, char * argv[])
     assert(&*std::get<Pair>(*x).first);
     assert(&*std::get<Pair>(*y).first);
     assert(&*std::get<Pair>(*z).first);
-    // std::cout << "\033[2J";
-    // printRef();
-    // printObj();
-    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    std::cout << "\033[2J";
+    printObj(); printRef();
   }
   GC::mark_and_sweep();
 
