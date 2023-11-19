@@ -4,9 +4,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include "Type.h"
-#include "GC.h"
 #include "Expressions.h"
+#include "GC.h"
+#include "Type.h"
 
 namespace r5rs
 {
@@ -17,11 +17,10 @@ namespace r5rs
     std::unordered_map<std::string, Reference> variables;
     explicit Env(std::shared_ptr<Env> parent = nullptr): parent(parent) {}
 
-    explicit Env(
-      const expression::Formals & formals,
-      const std::list<Reference> & args,
-      std::shared_ptr<Env> parent = nullptr
-    ): parent(parent)
+    explicit Env(const expression::Formals & formals,
+                 const std::list<Reference> & args,
+                 std::shared_ptr<Env> parent = nullptr)
+      : parent(parent)
     {
       if (args.size() < formals.fixed.size())
       {
@@ -53,16 +52,19 @@ namespace r5rs
       }
     }
 
-    void set(const std::string & var, Reference val)
-    {
-      variables[var] = val;
-    }
+    void set(const std::string & var, Reference val) { variables[var] = val; }
 
     std::optional<Reference> get(const std::string & var)
     {
       auto it = variables.find(var);
-      if (it != variables.end()) { return it->second; }
-      if (!parent) { return std::nullopt; }
+      if (it != variables.end())
+      {
+        return it->second;
+      }
+      if (!parent)
+      {
+        return std::nullopt;
+      }
       return parent->get(var);
     }
 

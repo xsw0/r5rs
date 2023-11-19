@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.27)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD 23)
 
 project(r5rs VERSION 0.1.0)
@@ -24,21 +24,9 @@ FetchContent_MakeAvailable(googletest)
 
 include_directories(${CMAKE_SOURCE_DIR})
 
-set(CPPS
-        ${CMAKE_SOURCE_DIR}/String.cpp
-        ${CMAKE_SOURCE_DIR}/Token.cpp
-        ${CMAKE_SOURCE_DIR}/GetRef.cpp
-        ${CMAKE_SOURCE_DIR}/GC.cpp
-        ${CMAKE_SOURCE_DIR}/Parse.cpp
-        ${CMAKE_SOURCE_DIR}/Lex.cpp
-        ${CMAKE_SOURCE_DIR}/Env.cpp
-        ${CMAKE_SOURCE_DIR}/Expressions.cpp
-        ${CMAKE_SOURCE_DIR}/Interpreter.cpp
-        )
-
-add_library(r5rs_lib STATIC ${CPPS})
+add_subdirectory(src)
+add_subdirectory(test)
 
 add_executable(r5rs main.cpp)
+target_include_directories(r5rs PUBLIC src)
 target_link_libraries(r5rs r5rs_lib)
-
-add_subdirectory(test)

@@ -1,20 +1,18 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
-#include "GC.h"
-#include "Lex.h"
 #include "Expressions.h"
-#include "color.h"
-#include "String.h"
+#include "GC.h"
 #include "Interpreter.h"
+#include "Lex.h"
+#include "String.h"
+#include "color.h"
 
 using namespace std;
 using namespace r5rs;
 
-int main(int argc, char * argv[])
-{
-  if (argc == 1)
-  {
+int main(int argc, char *argv[]) {
+  if (argc == 1) {
     // r5rs::expression::init();
 
     std::cout << "start" << std::endl;
@@ -41,22 +39,18 @@ int main(int argc, char * argv[])
     std::ofstream file(mem_dot, std::ios::trunc | std::ios::out);
     file << interpreter.env->print() << std::endl;
 
-    while ((cod = stream[0]))
-    {
-      std::cout << std::visit(String(), *std::invoke(interpreter, cod->get())) << std::endl;
+    while ((cod = stream[0])) {
+      std::cout << std::visit(String(), *std::invoke(interpreter, cod->get()))
+                << std::endl;
       std::ofstream file(mem_dot, std::ios::trunc | std::ios::out);
       file << interpreter.env->print() << std::endl;
       stream += 1;
     }
 
     std::cout << "end" << std::endl;
-  }
-  else if (argc == 2)
-  {
+  } else if (argc == 2) {
 
-  }
-  else
-  {
+  } else {
     std::cerr << "usage: r5rs [filename]" << std::endl;
     return -1;
   }
