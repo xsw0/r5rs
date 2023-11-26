@@ -6,32 +6,32 @@ using namespace r5rs;
 using namespace expression;
 
 namespace {
-  template <size_t n> void check_num(std::list<Reference>& args) {
+  template <size_t n> void check_num(std::list<GCRef>& args) {
     if (args.size() != n) {
       throw std::runtime_error("Argument number error!");
     }
   }
 
-  template <typename T> void check_type(Reference arg) {
+  template <typename T> void check_type(GCRef arg) {
     if (!std::holds_alternative<T>(*arg)) {
       throw std::runtime_error("Argument type error!");
     }
   }
 
-  template <typename T> T cast(Reference arg) {
+  template <typename T> T cast(GCRef arg) {
     if (!std::holds_alternative<T>(*arg)) {
       throw std::runtime_error("Argument type error!");
     }
     return std::get<T>(*arg);
   }
 
-  template <size_t I> Reference index(std::list<Reference>& args) {
+  template <size_t I> GCRef index(std::list<GCRef>& args) {
     auto it = args.begin();
     std::advance(it, I);
     return *it;
   }
 
-  Reference add(std::list<Reference>& args) {
+  GCRef add(std::list<GCRef>& args) {
     int64_t sum = 0;
     for (auto&& arg : args) {
       sum += cast<int64_t>(arg);
@@ -39,7 +39,7 @@ namespace {
     return sum;
   }
 
-  Reference mul(std::list<Reference>& args) {
+  GCRef mul(std::list<GCRef>& args) {
     int64_t prod = 1;
     for (auto&& arg : args) {
       prod *= cast<int64_t>(arg);
@@ -47,7 +47,7 @@ namespace {
     return prod;
   }
 
-  Reference is_empty(std::list<Reference>& args) {
+  GCRef is_empty(std::list<GCRef>& args) {
     check_num<1>(args);
     if (std::holds_alternative<nullptr_t>(*index<0>(args))) {
       return true;
@@ -55,22 +55,22 @@ namespace {
     return false;
   }
 
-  Reference cons(std::list<Reference>& args) {
+  GCRef cons(std::list<GCRef>& args) {
     check_num<2>(args);
     return Pair{ index<0>(args), index<1>(args) };
   }
 
-  Reference car(std::list<Reference>& args) {
+  GCRef car(std::list<GCRef>& args) {
     check_num<1>(args);
     return cast<Pair>(index<0>(args)).first;
   }
 
-  Reference cdr(std::list<Reference>& args) {
+  GCRef cdr(std::list<GCRef>& args) {
     check_num<1>(args);
     return cast<Pair>(index<0>(args)).second;
   }
 
-  Reference Or(std::list<Reference>& args) {
+  GCRef Or(std::list<GCRef>& args) {
     auto visitor = overloaded{
         [](nullptr_t) -> bool { return false; },
         [](bool b) -> bool { return b; },
@@ -84,7 +84,7 @@ namespace {
     return false;
   }
 
-  Reference And(std::list<Reference>& args) {
+  GCRef And(std::list<GCRef>& args) {
     auto visitor = overloaded{
         [](nullptr_t) -> bool { return false; },
         [](bool b) -> bool { return b; },
@@ -98,22 +98,22 @@ namespace {
     return true;
   }
 
-  Reference eqv(std::list<Reference>& args) {
+  GCRef eqv(std::list<GCRef>& args) {
     check_num<2>(args);
     return cast<int64_t>(index<0>(args)) == cast<int64_t>(index<1>(args));
   }
 
-  Reference less(std::list<Reference>& args) {
+  GCRef less(std::list<GCRef>& args) {
     check_num<2>(args);
     return cast<int64_t>(index<0>(args)) < cast<int64_t>(index<1>(args));
   }
 
-  Reference greater(std::list<Reference>& args) {
+  GCRef greater(std::list<GCRef>& args) {
     check_num<2>(args);
     return cast<int64_t>(index<0>(args)) > cast<int64_t>(index<1>(args));
   }
 
-  Reference read(std::list<Reference>& args) {
+  GCRef read(std::list<GCRef>& args) {
     check_num<1>(args);
     auto name = cast<std::string>(index<0>(args));
 
@@ -125,7 +125,7 @@ namespace {
       v.push_back(n);
     }
 
-    Reference list = nullptr;
+    GCRef list = nullptr;
     for (auto it = v.rbegin(); it != v.rend(); ++it) {
       list = Pair{ *it, list };
     }
@@ -160,23 +160,23 @@ void r5rs::Interpreter::pop() {
   env = env->parent;
 }
 
-Reference r5rs::Interpreter::operator()(expression::COD* cod) {
+GCRef r5rs::Interpreter::operator()(expression::COD* cod) {
   return std::visit(*this, cod->cod_type());
 }
 
-Reference r5rs::Interpreter::operator()(expression::Datum* datum) {
+GCRef r5rs::Interpreter::operator()(expression::Datum* datum) {
   return std::visit(*this, datum->datum_type());
 }
 
-Reference r5rs::Interpreter::operator()(expression::Definition* def) {
+GCRef r5rs::Interpreter::operator()(expression::Definition* def) {
   return std::visit(*this, def->def_type());
 }
 
-Reference r5rs::Interpreter::operator()(expression::Exp* exp) {
+GCRef r5rs::Interpreter::operator()(expression::Exp* exp) {
   return std::visit(*this, exp->exp_type());
 }
 
-Reference r5rs::Interpreter::operator()(expression::CODs* cods) {
+GCRef r5rs::Interpreter::operator()(expression::CODs* cods) {
   assert(!cods->cods.empty());
   auto start = cods->cods.begin();
   auto back = std::prev(cods->cods.end());
@@ -187,19 +187,19 @@ Reference r5rs::Interpreter::operator()(expression::CODs* cods) {
   return std::visit(*this, (*start)->cod_type());
 }
 
-Reference r5rs::Interpreter::operator()(expression::SimpleDatum* datum) {
-  return std::visit([](auto v) -> Value { return std::move(v); }, datum->value);
+GCRef r5rs::Interpreter::operator()(expression::SimpleDatum* datum) {
+  return std::visit([](auto v) -> GCValue { return std::move(v); }, datum->value);
 }
 
-Reference r5rs::Interpreter::operator()(expression::ListDatum* list) {
-  Reference head = nullptr;
+GCRef r5rs::Interpreter::operator()(expression::ListDatum* list) {
+  GCRef head = nullptr;
   for (auto it = list->list.rbegin(); it != list->list.rend(); ++it) {
     head = Pair{ std::invoke(*this, it->get()), head };
   }
   return head;
 }
 
-Reference r5rs::Interpreter::operator()(expression::VectorDatum* vec) {
+GCRef r5rs::Interpreter::operator()(expression::VectorDatum* vec) {
   Vector res;
   for (auto&& datum : vec->list) {
     res.push_back(std::invoke(*this, datum.get()));
@@ -207,7 +207,7 @@ Reference r5rs::Interpreter::operator()(expression::VectorDatum* vec) {
   return std::move(res);
 }
 
-Reference r5rs::Interpreter::operator()(expression::Define* def) {
+GCRef r5rs::Interpreter::operator()(expression::Define* def) {
   auto&& vars = env->variables;
 
   if (vars.find(def->variable) != vars.end()) {
@@ -219,7 +219,7 @@ Reference r5rs::Interpreter::operator()(expression::Define* def) {
   return nullptr;
 }
 
-Reference r5rs::Interpreter::operator()(expression::Definitions* defs) {
+GCRef r5rs::Interpreter::operator()(expression::Definitions* defs) {
   push();
   for (auto&& def : defs->defs) {
     std::invoke(*this, def.get());
@@ -228,7 +228,7 @@ Reference r5rs::Interpreter::operator()(expression::Definitions* defs) {
   return nullptr;
 }
 
-Reference r5rs::Interpreter::operator()(expression::Variable* var) {
+GCRef r5rs::Interpreter::operator()(expression::Variable* var) {
   auto&& res = env->get(var->id);
   if (!res) {
     throw std::runtime_error("variable " + var->id + " is not defined!");
@@ -236,28 +236,28 @@ Reference r5rs::Interpreter::operator()(expression::Variable* var) {
   return *res;
 }
 
-Reference r5rs::Interpreter::operator()(expression::Literal* literal) {
-  auto visitor = overloaded{ [this](DatumPtr datum) -> Reference {
+GCRef r5rs::Interpreter::operator()(expression::Literal* literal) {
+  auto visitor = overloaded{ [this](DatumPtr datum) -> GCRef {
                               return std::invoke(*this, datum.get());
                             },
-                            [](auto v) -> Reference { return std::move(v); } };
+                            [](auto v) -> GCRef { return std::move(v); } };
 
   return std::visit(visitor, literal->value);
 }
 
-Reference r5rs::Interpreter::operator()(expression::Call* call) {
+GCRef r5rs::Interpreter::operator()(expression::Call* call) {
   auto op = std::invoke(*this, call->op.get());
 
-  std::list<Reference> args;
+  std::list<GCRef> args;
   for (auto&& exp : call->operands) {
     args.push_back(std::invoke(*this, exp.get()));
   }
 
   auto visitor = overloaded{
-      [&args](Primitive primitive) -> Reference {
+      [&args](Primitive primitive) -> GCRef {
         return std::invoke(*primitive, args);
       },
-      [&args, this](ClosureLambda lambda) -> Reference {
+      [&args, this](ClosureLambda lambda) -> GCRef {
         auto e = this->env;
 
         this->env = lambda.env;
@@ -267,18 +267,18 @@ Reference r5rs::Interpreter::operator()(expression::Call* call) {
         this->env = e;
         return res;
       },
-      [](auto&&) -> Reference {
+      [](auto&&) -> GCRef {
         throw std::runtime_error("expression is not a function");
       } };
 
   return std::visit(visitor, *op);
 }
 
-Reference r5rs::Interpreter::operator()(expression::Lambda* lambda) {
+GCRef r5rs::Interpreter::operator()(expression::Lambda* lambda) {
   return ClosureLambda{ lambda, env };
 }
 
-Reference r5rs::Interpreter::operator()(expression::Conditional* condition) {
+GCRef r5rs::Interpreter::operator()(expression::Conditional* condition) {
   auto cond = std::invoke(*this, condition->test.get());
   auto visitor = overloaded{
       [](nullptr_t) -> bool { return false; },
@@ -294,7 +294,7 @@ Reference r5rs::Interpreter::operator()(expression::Conditional* condition) {
   }
 }
 
-Reference r5rs::Interpreter::operator()(expression::Assignment* assign) {
+GCRef r5rs::Interpreter::operator()(expression::Assignment* assign) {
   auto var = env->get(assign->variable);
   if (!var) {
     throw std::runtime_error("variable not found");
@@ -303,7 +303,7 @@ Reference r5rs::Interpreter::operator()(expression::Assignment* assign) {
   return nullptr;
 }
 
-Reference r5rs::Interpreter::operator()(expression::Body* body) {
+GCRef r5rs::Interpreter::operator()(expression::Body* body) {
   if (body->exps.empty()) {
     throw std::runtime_error("empty body!");
   }

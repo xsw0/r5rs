@@ -12,106 +12,133 @@
 #include <variant>
 #include <vector>
 
-namespace r5rs {
-  template <class T>
-  concept value_concept = !std::is_reference_v<T>;
-  template <class T>
-  concept reference_concept = std::is_reference_v<T>;
-  template <class T>
-  concept lvalue_reference_concept = std::is_lvalue_reference_v<T>;
-  template <class T>
-  concept rvalue_reference_concept = std::is_rvalue_reference_v<T>;
+namespace r5rs
+{
+  // template<typename T, typename Y>
+  // concept Like =
+  //   std::invocable< decltype([](Y const &) {}), T > ||
+  //   std::invocable< decltype([](Y &&) {}), T > ;
 
-  template <class T, template <class...> class C>
-  struct is_a : std::false_type {};
-  template <class T, template <class...> class C>
-  struct is_a<C<T>, C> : std::true_type {};
-  template <class T, template <class...> class C>
-  inline constexpr bool is_a_v = is_a<T, C>::value;
+  template<typename T, typename Y>
+  concept just = std::is_same_v<std::remove_cvref_t<T>, std::remove_cvref_t<Y>>;
+
+  template<class T>
+  concept object = std::is_object_v<T>;
+
+  template <class T>
+  concept Value = !std::is_reference_v<T>;
+  template <class T>
+  concept Reference = std::is_reference_v<T>;
+  template <class T>
+  concept LvalueReference = std::is_lvalue_reference_v<T>;
+  template <class T>
+  concept RvalueReference = std::is_rvalue_reference_v<T>;
+
+  template <class T, template <class...> class TC>
+  struct is_a: std::false_type {};
+  template <class T, template <class...> class TC>
+  struct is_a<TC<T>, TC>: std::true_type {};
+  template <class T, template <class...> class TC>
+  inline constexpr bool is_a_v = is_a<T, TC>::value;
+  template <class T, template <class...> class TC>
+  concept Is = is_a_v<T, TC>;
+
+  template <class T, template <class...> class TC>
+  concept IsNot = !is_a_v<T, TC>;
 
   template <class R, class F, class... Args>
-  concept invocable_r = std::is_invocable_r_v<R, F, Args...>;
+  concept InvocableR = std::is_invocable_r_v<R, F, Args...>;
   template <class R, class F, class... Args>
-  concept regular_invocable_r = invocable_r<R, F, Args...>;
+  concept RegularInvocableR = InvocableR<R, F, Args...>;
 
   template <template <class> class RT, class F, class... Args>
-  struct is_invocable_rt
-    : std::bool_constant<std::is_invocable_v<F, Args...>&&
-    RT<std::invoke_result_t<F, Args...>>::value> {};
-  template <template <class> class RT, class F, class... Args>
-  inline constexpr bool is_invocable_rt_v =
-    is_invocable_rt<RT, F, Args...>::value;
-
-  template <template <class> class RT, class F, class... Args>
-  concept invocable_rt = is_invocable_rt_v<RT, F, Args...>;
-  template <template <class> class RT, class F, class... Args>
-  concept regular_invocable_rt = invocable_rt<RT, F, Args...>;
-
-  template <template <class> class RF, class F, class... Args>
-  struct is_invocable_rf
+  struct is_invocable_r_t
     : std::bool_constant<std::is_invocable_v<F, Args...> &&
-    !RF<std::invoke_result_t<F, Args...>>::value> {};
-  template <template <class> class RF, class F, class... Args>
-  inline constexpr bool is_invocable_rf_v =
-    is_invocable_rf<RF, F, Args...>::value;
+    RT<std::invoke_result_t<F, Args...>>::value>
+  {
+  };
+  template <template <class> class RT, class F, class... Args>
+  inline constexpr bool is_invocable_r_t_v =
+    is_invocable_r_t<RT, F, Args...>::value;
+
+  template <template <class> class RT, class F, class... Args>
+  concept InvocableRT = is_invocable_r_t_v<RT, F, Args...>;
+  template <template <class> class RT, class F, class... Args>
+  concept RegularInvocableRT = InvocableRT<RT, F, Args...>;
 
   template <template <class> class RF, class F, class... Args>
-  concept invocable_rf = is_invocable_rf_v<RF, F, Args...>;
+  struct is_Invocable_r_f
+    : std::bool_constant<std::is_invocable_v<F, Args...> &&
+    !RF<std::invoke_result_t<F, Args...>>::value>
+  {
+  };
   template <template <class> class RF, class F, class... Args>
-  concept regular_invocable_rf = invocable_rf<RF, F, Args...>;
+  inline constexpr bool is_Invocable_r_f_v =
+    is_Invocable_r_f<RF, F, Args...>::value;
+
+  template <template <class> class RF, class F, class... Args>
+  concept InvocableRF = is_Invocable_r_f_v<RF, F, Args...>;
+  template <template <class> class RF, class F, class... Args>
+  concept RegularInvocableRF = InvocableRF<RF, F, Args...>;
 
   template <template <class...> class RC, class F, class... Args>
-  struct is_invocable_rc
-    : std::bool_constant<std::is_invocable_v<F, Args...>&&
+  struct is_invocable_r_c
+    : std::bool_constant<std::is_invocable_v<F, Args...> &&
     is_a_v<std::invoke_result_t<F, Args...>, RC>> {};
   template <template <class...> class RC, class F, class... Args>
-  inline constexpr bool is_invocable_rc_v =
-    is_invocable_rc<RC, F, Args...>::value;
+  inline constexpr bool is_invocable_r_c_v =
+    is_invocable_r_c<RC, F, Args...>::value;
 
   template <template <class...> class RC, class F, class... Args>
-  concept invocable_rc = is_invocable_rc_v<RC, F, Args...>;
+  concept InvocableRC = is_invocable_r_c_v<RC, F, Args...>;
   template <template <class...> class RC, class F, class... Args>
-  concept regular_invocable_rc = invocable_rc<RC, F, Args...>;
+  concept RegularInvocableRC = InvocableRC<RC, F, Args...>;
 
-  template <size_t index> auto pack_get(auto&& arg, auto &&...args) {
-    if constexpr (index == 0) {
+  template <size_t index> auto pack_get(auto && arg, auto &&...args)
+  {
+    if constexpr (index == 0)
+    {
       return std::forward<decltype(arg)>(arg);
     }
-    else {
+    else
+    {
       return pack_get<index - 1>(args...);
     }
   }
 
-  template <class... Ts> struct overloaded : Ts... {
+  template <class... Ts> struct overloaded: Ts... {
     using Ts::operator()...;
   };
   template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
-  class InternalReference;
-  class Reference;
+  class InternalGCRef;
+  class GCRef;
 
-  using Pair = std::pair<InternalReference, InternalReference>;
+  using Pair = std::pair<InternalGCRef, InternalGCRef>;
 
-  struct Symbol {
+  struct Symbol
+  {
     std::string name;
   };
 
-  namespace expression {
+  namespace expression
+  {
     class Lambda;
   }
   class Env;
 
-  class ClosureLambda {
+  class ClosureLambda
+  {
   public:
-    expression::Lambda* lambda;
+    expression::Lambda * lambda;
     std::shared_ptr<Env> env;
   };
 
-  using Primitive = Reference(*)(std::list<Reference>&);
+  using Primitive = GCRef(*)(std::list<GCRef> &);
 
-  using Vector = std::vector<InternalReference>;
+  using Vector = std::vector<InternalGCRef>;
 
-  using Value = std::variant<
+  using GCValue = std::variant<
     // std::monostate,
     nullptr_t, bool, char, int64_t, double, std::string, Symbol, Pair, Vector,
     ClosureLambda, Primitive>;
@@ -119,8 +146,9 @@ namespace r5rs {
   template <typename Ret, typename... Args>
   using function_ptr = std::shared_ptr<std::function<Ret(Args...)>>;
 
-  auto make_function(auto&& func)
-    -> std::shared_ptr<decltype(std::function(func))> {
+  auto make_function(auto && func)
+    -> std::shared_ptr<decltype(std::function(func))>
+  {
     // static std::list<std::shared_ptr<decltype(std::function(func))>> list;
     auto shared =
       std::make_shared<decltype(std::function(func))>(std::function(func));

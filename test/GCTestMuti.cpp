@@ -10,7 +10,7 @@
 #include "GetRef.h"
 #include "String.h"
 #include "Type.h"
-#include "Value.h"
+#include "GCValue.h"
 
 using namespace std;
 using namespace r5rs;
@@ -30,18 +30,18 @@ void printObj() {
 
 void printRef() {
   std::cout << "print ref" << std::endl;
-  auto* ref = InternalReference::global.next;
-  while (ref != &InternalReference::global) {
+  auto* ref = InternalGCRef::global.next;
+  while (ref != &InternalGCRef::global) {
     assert(ref->prev->next == ref);
     assert(ref->next->prev == ref);
-    auto r = static_cast<InternalReference*>(ref);
+    auto r = static_cast<InternalGCRef*>(ref);
     std::cout << &**r << "\t" << std::visit(String(), **r) << std::endl;
     ref = ref->next;
   }
 }
 
 std::mutex mtx;
-vector<InternalReference> vec;
+vector<InternalGCRef> vec;
 random_device rd;
 default_random_engine re(rd());
 

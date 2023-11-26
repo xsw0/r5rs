@@ -19,10 +19,10 @@ void r5rs::GC::unref(GC *obj) {
 }
 
 void r5rs::GC::mark_objects() {
-  auto r = Reference::global.next;
+  auto r = GCRef::global.next;
 
-  while (r != &Reference::global) {
-    static_cast<Reference *>(r)->mark();
+  while (r != &GCRef::global) {
+    static_cast<GCRef *>(r)->mark();
     r = r->next;
   }
 }
@@ -52,50 +52,50 @@ void r5rs::GC::mark_and_sweep() {
   GC::capacity = std::max(new_size, GC::capacity);
 }
 
-r5rs::InternalReference::~InternalReference() {
+r5rs::InternalGCRef::~InternalGCRef() {
   if (obj) {
     GC::unref(obj);
   }
 }
 
-r5rs::InternalReference::InternalReference(const InternalReference &other)
-    : InternalReference(other.obj) {}
-r5rs::InternalReference::InternalReference(InternalReference &&other) noexcept
-    : InternalReference(other.obj) {}
+r5rs::InternalGCRef::InternalGCRef(const InternalGCRef &other)
+    : InternalGCRef(other.obj) {}
+r5rs::InternalGCRef::InternalGCRef(InternalGCRef &&other) noexcept
+    : InternalGCRef(other.obj) {}
 
-InternalReference &
-r5rs::InternalReference::operator=(const InternalReference &other) {
+InternalGCRef &
+r5rs::InternalGCRef::operator=(const InternalGCRef &other) {
   GC::ref(other.obj);
   GC::unref(obj);
   obj = other.obj;
   return *this;
 }
 
-InternalReference &
-r5rs::InternalReference::operator=(InternalReference &&other) noexcept {
+InternalGCRef &
+r5rs::InternalGCRef::operator=(InternalGCRef &&other) noexcept {
   GC::ref(other.obj);
   GC::unref(obj);
   obj = other.obj;
   return *this;
 }
 
-Value &r5rs::InternalReference::operator*() { return obj->value; }
+GCValue &r5rs::InternalGCRef::operator*() { return obj->value; }
 
-const Value &r5rs::InternalReference::operator*() const { return obj->value; }
+const GCValue &r5rs::InternalGCRef::operator*() const { return obj->value; }
 
-Value *r5rs::InternalReference::operator->() { return &obj->value; }
+GCValue *r5rs::InternalGCRef::operator->() { return &obj->value; }
 
-const Value *r5rs::InternalReference::operator->() const { return &obj->value; }
+const GCValue *r5rs::InternalGCRef::operator->() const { return &obj->value; }
 
-r5rs::InternalReference::InternalReference(GC *obj) : obj(obj) { GC::ref(obj); }
+r5rs::InternalGCRef::InternalGCRef(GC *obj) : obj(obj) { GC::ref(obj); }
 
-InternalReference &r5rs::InternalReference::operator=(nullptr_t) {
+InternalGCRef &r5rs::InternalGCRef::operator=(nullptr_t) {
   assert(obj);
   obj = nullptr;
   return *this;
 }
 
-void r5rs::InternalReference::mark() {
+void r5rs::InternalGCRef::mark() {
   if (!obj->is_marked()) {
     obj->mark();
     for (auto &&child : std::visit(GetRef(), obj->value)) {
@@ -104,26 +104,26 @@ void r5rs::InternalReference::mark() {
   }
 }
 
-Reference::~Reference() {
+GCRef::~GCRef() {
   rem(this);
   if (GC::size > GC::capacity) {
     GC::mark_and_sweep();
   }
 }
 
-Reference &Reference::operator=(const Reference &other) {
-  InternalReference::operator=(other);
+GCRef &GCRef::operator=(const GCRef &other) {
+  InternalGCRef::operator=(other);
   return *this;
 }
 
-Reference &Reference::operator=(Reference &&other) noexcept {
-  InternalReference::operator=(std::move(other));
+GCRef &GCRef::operator=(GCRef &&other) noexcept {
+  InternalGCRef::operator=(std::move(other));
   return *this;
 }
 
-Reference::Reference(GC *obj) : InternalReference(obj) { add(this); }
+GCRef::GCRef(GC *obj) : InternalGCRef(obj) { add(this); }
 
-Reference &Reference::operator=(nullptr_t) {
-  InternalReference::operator=(nullptr);
+GCRef &GCRef::operator=(nullptr_t) {
+  InternalGCRef::operator=(nullptr);
   return *this;
 }

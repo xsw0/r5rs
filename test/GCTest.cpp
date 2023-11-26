@@ -25,11 +25,11 @@ void printObj() {
 
 void printRef() {
   std::cout << "print ref" << std::endl;
-  auto* ref = Reference::global.next;
-  while (ref != &Reference::global) {
+  auto* ref = GCRef::global.next;
+  while (ref != &GCRef::global) {
     assert(ref->prev->next == ref);
     assert(ref->next->prev == ref);
-    auto r = static_cast<Reference*>(ref);
+    auto r = static_cast<GCRef*>(ref);
     std::cout << &**r << "\t" << std::visit(String(), **r) << std::endl;
     ref = ref->next;
   }
@@ -37,11 +37,11 @@ void printRef() {
 
 int main(int argc, char* argv[]) {
   for (int i = 0; i < 100; i++) {
-    auto x = Reference(Pair({ i * 6, i * 6 + 1 }));
+    auto x = GCRef(Pair({ i * 6, i * 6 + 1 }));
     assert(x.obj->count() == 1);
-    auto y = Reference(Pair({ i * 6 + 2, i * 6 + 3 }));
+    auto y = GCRef(Pair({ i * 6 + 2, i * 6 + 3 }));
     assert(y.obj->count() == 1);
-    auto z = Reference(Pair({ i * 6 + 4, i * 6 + 5 }));
+    auto z = GCRef(Pair({ i * 6 + 4, i * 6 + 5 }));
     assert(z.obj->count() == 1);
     std::get<Pair>(*x).first = y;
     std::get<Pair>(*y).first = z;

@@ -10,7 +10,7 @@
 
 namespace {
   using namespace r5rs;
-  std::string printObj(Reference ref) {
+  std::string printObj(GCRef ref) {
     std::string res;
 
     std::stringstream stream;

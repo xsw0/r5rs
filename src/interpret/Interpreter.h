@@ -16,32 +16,32 @@ namespace r5rs {
     void pop();
 
     // forward
-    Reference operator()(expression::COD*);
-    Reference operator()(expression::Datum*);
-    Reference operator()(expression::Definition*);
-    Reference operator()(expression::Exp*);
+    GCRef operator()(expression::COD*);
+    GCRef operator()(expression::Datum*);
+    GCRef operator()(expression::Definition*);
+    GCRef operator()(expression::Exp*);
 
     // cods
-    Reference operator()(expression::CODs*);
+    GCRef operator()(expression::CODs*);
 
     // Datum
-    Reference operator()(expression::SimpleDatum*);
-    Reference operator()(expression::ListDatum*);
-    Reference operator()(expression::VectorDatum*);
+    GCRef operator()(expression::SimpleDatum*);
+    GCRef operator()(expression::ListDatum*);
+    GCRef operator()(expression::VectorDatum*);
 
     // Definition
-    Reference operator()(expression::Define*);
-    Reference operator()(expression::Definitions*);
+    GCRef operator()(expression::Define*);
+    GCRef operator()(expression::Definitions*);
 
     // Exp
-    Reference operator()(expression::Variable*);
-    Reference operator()(expression::Literal*);
-    Reference operator()(expression::Call*);
-    Reference operator()(expression::Lambda*);
-    Reference operator()(expression::Conditional*);
-    Reference operator()(expression::Assignment*);
+    GCRef operator()(expression::Variable*);
+    GCRef operator()(expression::Literal*);
+    GCRef operator()(expression::Call*);
+    GCRef operator()(expression::Lambda*);
+    GCRef operator()(expression::Conditional*);
+    GCRef operator()(expression::Assignment*);
 
-    Reference operator()(expression::Body*);
+    GCRef operator()(expression::Body*);
   };
 } // namespace r5rs
 

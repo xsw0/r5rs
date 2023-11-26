@@ -11,7 +11,7 @@ namespace r5rs {
     std::ptrdiff_t level = std::numeric_limits<std::ptrdiff_t>::max();
   };
 
-  template <value_concept T> class Try {
+  template <object T> class Try {
   public:
     static_assert(!std::is_same_v<Error, std::remove_cvref_t<T>>);
     using type = T;
@@ -46,9 +46,9 @@ namespace r5rs {
   template <typename T> Try(Try<T>&&) -> Try<T>;
   template <typename T> Try(T&&) -> Try<T>;
 
-  template <value_concept T>
+  template <object T>
   auto operator>>=(Try<T> t, auto&& f) -> std::invoke_result_t<decltype(f), T>
-    requires regular_invocable_rc<Try, decltype(f), T>
+    requires RegularInvocableRC<Try, decltype(f), T>
   {
     using result_t = std::invoke_result_t<decltype(f), T>;
     if (std::holds_alternative<Error>(t.value)) {
@@ -57,7 +57,7 @@ namespace r5rs {
     return std::invoke(std::forward<decltype(f)>(f), std::get<T>(t.value));
   }
 
-  template <value_concept T> inline Try<T> operator||(Try<T> lhs, Try<T> rhs) {
+  template <object T> inline Try<T> operator||(Try<T> lhs, Try<T> rhs) {
     static_assert(!std::is_reference_v<T>);
     return lhs ? lhs : rhs;
   };
