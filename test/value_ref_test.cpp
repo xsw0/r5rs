@@ -7,92 +7,126 @@
 #include <cassert>
 #include <utility>
 #include <memory>
+#include <version>
+#include <functional>
 
-#include "Record.h"
 #include "value_ref.h"
 
-using namespace r5rs;
+#include "output.h"
+#include <catch2/catch_test_macros.hpp>
 
 class Base
 {
 public:
-  inline static unsigned n = 0;
+  using callback_t = std::function<void(std::vector<std::string>)>;
 
-  ~Base() { Record::add({ "dtor", name }); }
+  ~Base() { callback({ "dtor", name }); }
 
-  Base(std::string name = "")
-    : name{ std::move(name) }
+  Base(callback_t const & callback, std::string name = "")
+    : callback{ callback }, name{ std::move(name) }
   {
-    Record::add({ "ctor", this->name });
+    callback({ "ctor", this->name });
   }
 
-  Base(Base const & base): name{ base.name } { Record::add({ "copy ctor", name }); }
-  Base(Base && base): name{ base.name } { Record::add({ "move ctor", name }); }
+  Base(Base const & base)
+    :callback{ base.callback }, name{ base.name }
+  {
+    callback({ "copy ctor", name });
+  }
+
+  Base(Base && base)
+    :callback{ base.callback }, name{ base.name }
+  {
+    callback({ "move ctor", name });
+  }
+
   Base & operator=(Base const & base)
   {
-    Record::add({ "copy assign", name, base.name });
+    callback({ "copy assign", name, base.name });
     return *this;
   }
+
   Base & operator=(Base && base)
   {
-    Record::add({ "move assign", name, base.name });
+    callback({ "move assign", name, base.name });
+    return *this;
+  }
+
+  Base & operator=(Base & base)
+  {
+    callback({ "copy assign", name, base.name });
+    return *this;
+  }
+
+  Base & operator=(Base const && base)
+  {
+    callback({ "move assign", name, base.name });
     return *this;
   }
 
   std::string const name;
+  std::function<void(std::vector<std::string>)> const & callback;
 };
 
-int main()
+TEST_CASE("value_ref")
 {
+  std::vector<std::vector<std::string>> records;
+
+  Base::callback_t record = [&](std::vector<std::string> r) {
+    records.push_back(std::move(r));
+  };
+
+  auto match = [&](std::vector<std::vector<std::string>> const & rs) {
+    auto res = records == rs;
+    records.clear();
+    return res;
+  };
+
+  using namespace r5rs;
+
+  SECTION("ctor & dtor")
   {
     {
-      value_ref<Base> v{ "1" };
-      Record::match({ { "ctor", "1" } });
+      auto r1 = make_value<Base>(record, "1");
+      INFO(records);
+      REQUIRE(match({ { "ctor", "1" } }));
 
-      value_ref<Base> v2 = Base{ "2" };
-      Record::match({ { "ctor", "2" }, { "move ctor", "2" }, { "dtor", "2" } });
+      auto r2 = r1;
+      INFO(records);
+      REQUIRE(match({ { "copy ctor", "1" } }));
 
-      value_ref<Base> v3 = value_ref<Base>{ "3" };
-      Record::match({ { "ctor", "3" } });
-
-      value_ref<Base> v4 = v;
-      Record::match({ { "copy ctor", "1" } });
-
-      value_ref<Base> v5 = v2;
-      Record::match({ { "copy ctor", "2" } });
-
-      value_ref<Base> v6 = std::move(v);
-      Record::match({ { "move ctor", "1" } });
-
-      value_ref<Base> v7 = std::move(v2);
-      Record::match({ { "move ctor", "2" } });
-
-      v2 = v;
-      Record::match({ { "copy assign", "2", "1" } });
-
-      v3 = v2;
-      Record::match({ { "copy assign", "3", "2" } });
-
-      v4 = std::move(v);
-      Record::match({ { "move assign", "1", "1" } });
-
-      v5 = std::move(v2);
-      Record::match({ { "move assign", "2", "2" } });
-
-      v = v2;
-      Record::match({ { "copy assign", "1", "2" } });
+      auto r3 = std::move(r1);
+      INFO(records);
+      REQUIRE(match({ { "move ctor", "1" } }));
     }
-    Record::match({
-      { "dtor", "2" },
-      { "dtor", "1" },
-      { "dtor", "2" },
-      { "dtor", "1" },
-      { "dtor", "3" },
-      { "dtor", "2" },
-      { "dtor", "1" },
-    });
+    INFO(records);
+    REQUIRE(match({ { "dtor", "1" }, { "dtor", "1" }, { "dtor", "1" } }));
   }
 
-  std::cout << "done." << std::endl;
-  return 0;
+  SECTION("assign")
+  {
+    {
+      auto r1 = make_value<Base>(record, "1");
+      INFO(records);
+      REQUIRE(match({ { "ctor", "1" } }));
+
+      auto r2 = make_value<Base>(record, "2");
+      INFO(records);
+      REQUIRE(match({ { "ctor", "2" } }));
+
+      r1 = r2;
+      INFO(records);
+      REQUIRE(match({ { "copy assign", "1", "2" } }));
+
+      r1 = std::move(r2);
+      INFO(records);
+      REQUIRE(match({ { "move assign", "1", "2" } }));
+
+      r1 = make_value<Base>(record, "3");
+      INFO(records);
+      REQUIRE(match({ { "ctor", "3" }, { "move assign", "1", "3" }, { "dtor", "3" } }));
+    }
+    INFO(records);
+    REQUIRE(match({ { "dtor", "2" }, { "dtor", "1" } }));
+  }
 }

@@ -1,5 +1,5 @@
-#ifndef _R5RS_GC_H_
-#define _R5RS_GC_H_
+#ifndef R5RS_GC_H
+#define R5RS_GC_H
 
 #include <atomic>
 #include <cassert>

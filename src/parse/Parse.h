@@ -1,5 +1,5 @@
-#ifndef _R5RS_Parse_H_
-#define _R5RS_Parse_H_
+#ifndef R5RS_Parse_H
+#define R5RS_Parse_H
 
 #include <cstddef>
 #include <functional>

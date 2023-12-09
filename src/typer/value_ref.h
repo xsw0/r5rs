@@ -1,82 +1,63 @@
-#ifndef _R5RS_VAL_H_
-#define _R5RS_VAL_H_
+#ifndef R5RS_VALUE_REF_H
+#define R5RS_VALUE_REF_H
 
-#include <Type.h>
+#include <type_traits>
 
 namespace r5rs
 {
+  template<typename T>
+  concept object = std::is_object_v<T>;
+
   template<object T>
-  class value_ref
+  class value_ref final
   {
   public:
     ~value_ref() { delete data; }
+  private:
+    constexpr explicit value_ref(T * p) noexcept: data{ p } { assert(p); }
+  public:
+    template<typename U, typename ... Args>
+    friend value_ref<U> make_value(Args && ... args)
+      noexcept (std::is_nothrow_constructible_v<U, Args && ...>);
 
-    value_ref(value_ref<T> const & ref)
+    value_ref(value_ref const & ref)
       noexcept(std::is_nothrow_copy_constructible_v<T>)
-      : data{ new T{ *ref.data } }
+      : data{ new T{ *ref } }
     {
     }
 
-    value_ref(value_ref<T> && ref)
+    value_ref(value_ref && ref)
       noexcept(std::is_nothrow_move_constructible_v<T>)
-      : data{ new T{ std::move(*ref.data) } }
+      : data{ new T{ std::move(*ref) } }
     {
     }
 
-    value_ref(T const & val)
-      noexcept(std::is_nothrow_copy_constructible_v<T>)
-      : data{ new T{ val } }
-    {
-    }
-
-    value_ref(T && val)
-      noexcept(std::is_nothrow_move_constructible_v<T>)
-      : data{ new T{ std::move(val) } }
-    {
-    }
-
-    template<typename ... Args>
-    explicit value_ref(Args && ... args)
-      noexcept(std::is_nothrow_constructible_v<T, Args...>)
-      : data{ new T{ std::forward<Args>(args)... } }
-    {
-    }
-
-    decltype(auto) operator=(value_ref<T> const & ref) const
+    value_ref & operator=(value_ref const & ref)
       noexcept(std::is_nothrow_copy_assignable_v<T>)
     {
-      *data = *ref.data;
+      *data = *ref;
       return *this;
     }
 
-    decltype(auto) operator=(value_ref<T> && ref) const
+    value_ref & operator=(value_ref && ref)
       noexcept(std::is_nothrow_move_assignable_v<T>)
     {
-      *data = std::move(*ref.data);
+      *data = std::move(*ref);
       return *this;
     }
 
-    decltype(auto) operator=(T const & val) const
-      noexcept(std::is_nothrow_copy_assignable_v<T>)
-    {
-      *data = val;
-      return *this;
-    }
-
-    decltype(auto) operator=(T && val) const
-      noexcept(std::is_nothrow_move_assignable_v<T>)
-    {
-      *data = std::move(val);
-      return *this;
-    }
-
-    operator T() const
-    {
-      return *data;
-    }
+    T & operator*() const noexcept { return *data; }
+    T * operator->() const noexcept { return data; }
   private:
     T * const data;
   };
+
+  template<typename T, typename ... Args>
+  value_ref<T> make_value(Args && ... args)
+    noexcept (std::is_nothrow_constructible_v<T, Args && ...>)
+  {
+    return value_ref<T>{new T{ std::forward<Args>(args)... }};
+  }
 }
 
 #endif

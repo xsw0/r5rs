@@ -1,5 +1,5 @@
-#ifndef _R5RS_GET_REF_H_
-#define _R5RS_GET_REF_H_
+#ifndef R5RS_GET_REF_H
+#define R5RS_GET_REF_H
 
 #include <vector>
 

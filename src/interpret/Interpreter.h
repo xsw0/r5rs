@@ -1,5 +1,5 @@
-#ifndef _R5RS_INTERPRETER_H_
-#define _R5RS_INTERPRETER_H_
+#ifndef R5RS_INTERPRETER_H
+#define R5RS_INTERPRETER_H
 
 #include "Env.h"
 #include "Expressions.h"

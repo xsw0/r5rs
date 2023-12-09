@@ -1,5 +1,5 @@
-#ifndef _R5RS_TRY_H_
-#define _R5RS_TRY_H_
+#ifndef R5RS_TRY_H
+#define R5RS_TRY_H
 
 #include <numeric>
 

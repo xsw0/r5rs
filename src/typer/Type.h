@@ -1,5 +1,5 @@
-#ifndef _R5RS_TYPE_H_
-#define _R5RS_TYPE_H_
+#ifndef R5RS_TYPE_H
+#define R5RS_TYPE_H
 
 #include <cassert>
 #include <cstddef>

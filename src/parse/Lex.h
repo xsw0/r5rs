@@ -1,5 +1,5 @@
-#ifndef _R5RS_LEX_H_
-#define _R5RS_LEX_H_
+#ifndef R5RS_LEX_H
+#define R5RS_LEX_H
 
 #include "Parse.h"
 #include "Token.h"

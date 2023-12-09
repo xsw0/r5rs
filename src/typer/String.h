@@ -1,5 +1,5 @@
-#ifndef _R5RS_STRING_H_
-#define _R5RS_STRING_H_
+#ifndef R5RS_STRING_H
+#define R5RS_STRING_H
 
 #include <iomanip>
 #include <iostream>

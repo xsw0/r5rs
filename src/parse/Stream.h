@@ -1,5 +1,5 @@
-#ifndef _R5RS_STREAM_H_
-#define _R5RS_STREAM_H_
+#ifndef R5RS_STREAM_H
+#define R5RS_STREAM_H
 
 #include "Try.h"
 #include "Type.h"

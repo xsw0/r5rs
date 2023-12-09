@@ -1,5 +1,5 @@
-#ifndef _R5RS_ENV_H_
-#define _R5RS_ENV_H_
+#ifndef R5RS_ENV_H
+#define R5RS_ENV_H
 
 #include <memory>
 #include <unordered_map>

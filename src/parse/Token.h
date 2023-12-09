@@ -1,5 +1,5 @@
-#ifndef _R5RS_TOKEN_H_
-#define _R5RS_TOKEN_H_
+#ifndef R5RS_TOKEN_H
+#define R5RS_TOKEN_H
 
 #include <string>
 #include <unordered_map>
